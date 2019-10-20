@@ -1,7 +1,25 @@
 # Samples from a matplotlib colormap and prints a constant string to stdout, which can then be embedded in a C++ program
 
+import math
 import numpy as np
 import matplotlib.cm
+
+import colorsys
+
+def plain_cmap(s):
+    cm = matplotlib.cm.get_cmap('RdPu')
+    return cm(pow(s, 0.8))
+
+divisions = 15
+offset = 0.75
+def cmap(s):
+    ds = 1/divisions
+    if (abs(s % ds) < ds / 2.):
+        return plain_cmap(0.05 + 0.95 * offset * s)
+    else:
+        return plain_cmap(offset * s + (1-offset))
+
+
 
 nValues = 500;
 
@@ -10,12 +28,14 @@ nValues = 500;
 # cmap = matplotlib.cm.get_cmap(cmapName)
 
 # get a cmocean colormap
-import cmocean
-cmapName = 'phase'
-cmap = cmocean.cm.phase
+# import cmocean
+# cmapName = 'phase'
+# cmap = cmocean.cm.phase
+
+cmapName = 'heat'
 
 
-print("static const Colormap CM_" + cmapName.upper() + " = {")
+print("const ValueColorMap CM_" + cmapName.upper() + " = {")
 print("    \"" + cmapName + "\",")
 
 dataStr = "{"

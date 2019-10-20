@@ -34,11 +34,12 @@ namespace gl {
 //
 
 // All of the color maps
-enum class ColorMapID { VIRIDIS = 0, COOLWARM, BLUES, REDS, PIYG, PHASE, SPECTRAL, RAINBOW, JET };
+enum class ColorMapID { VIRIDIS = 0, COOLWARM, BLUES, REDS, STRIPES, PIYG, PHASE, SPECTRAL, RAINBOW, JET };
 
-static std::vector<ColorMapID> allColorMaps{ColorMapID::VIRIDIS,  ColorMapID::COOLWARM, ColorMapID::BLUES,
-                                            ColorMapID::REDS,     ColorMapID::PIYG,     ColorMapID::PHASE,
-                                            ColorMapID::SPECTRAL, ColorMapID::RAINBOW,  ColorMapID::JET};
+static std::vector<ColorMapID> allColorMaps{ColorMapID::VIRIDIS, ColorMapID::COOLWARM, ColorMapID::BLUES,
+                                            ColorMapID::REDS,    ColorMapID::STRIPES,  ColorMapID::PIYG,
+                                            ColorMapID::PHASE,   ColorMapID::SPECTRAL, ColorMapID::RAINBOW,
+                                            ColorMapID::JET};
 
 // Represents a color map
 struct ValueColorMap {
@@ -86,6 +87,9 @@ inline std::string colorMapName(ColorMapID cmap) {
   case ColorMapID::REDS:
     return "reds";
     break;
+  case ColorMapID::STRIPES:
+    return "stripes";
+    break;
   case ColorMapID::SPECTRAL:
     return "spectral";
     break;
@@ -111,6 +115,7 @@ bool buildColormapSelector(ColorMapID& cm, std::string fieldname = "##colormap_p
 extern const ValueColorMap CM_VIRIDIS;
 extern const ValueColorMap CM_COOLWARM;
 extern const ValueColorMap CM_BLUES;
+extern const ValueColorMap CM_STRIPES;
 extern const ValueColorMap CM_PIYG;
 extern const ValueColorMap CM_SPECTRAL;
 extern const ValueColorMap CM_RAINBOW;
@@ -135,6 +140,9 @@ inline const ValueColorMap& getColorMap(ColorMapID cmap) {
     break;
   case ColorMapID::REDS:
     return CM_REDS;
+    break;
+  case ColorMapID::STRIPES:
+    return CM_STRIPES;
     break;
   case ColorMapID::SPECTRAL:
     return CM_SPECTRAL;
