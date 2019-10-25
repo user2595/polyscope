@@ -52,6 +52,31 @@ GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int sizeX_, unsigned in
   setFilterMode(FilterMode::Linear);
 }
 
+// create a 2D cubemap texture from data
+GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int sizeX_, unsigned int sizeY_,
+                                 std::array<unsigned char*, 6> data)
+    : format(format_), sizeX(sizeX_), sizeY(sizeY_), dim(2) {
+  if (sizeX > (1 << 22) || sizeY > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
+
+  glGenTextures(1, &handle);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[0]);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[1]);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[2]);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[3]);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[4]);
+  glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, data[5]);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  cubeMap = true;
+
+  setFilterMode(FilterMode::Linear);
+}
+
 GLTexturebuffer::~GLTexturebuffer() { glDeleteTextures(1, &handle); }
 
 void GLTexturebuffer::resize(unsigned int newLen) {
@@ -77,7 +102,17 @@ void GLTexturebuffer::resize(unsigned int newX, unsigned int newY) {
     throw std::runtime_error("OpenGL error: called 2D resize on 1D texture");
   }
   if (dim == 2) {
-    glTexImage2D(GL_TEXTURE_2D, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    if (cubeMap) {
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+
+    } else {
+      glTexImage2D(GL_TEXTURE_2D, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    }
   }
 }
 
@@ -85,7 +120,21 @@ void GLTexturebuffer::setFilterMode(FilterMode newMode) {
 
   bind();
 
-  if (dim == 1) {
+  if (cubeMap) {
+    switch (newMode) {
+    case FilterMode::Nearest:
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      break;
+    case FilterMode::Linear:
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      break;
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  } else if (dim == 1) {
     switch (newMode) {
     case FilterMode::Nearest:
       glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -97,8 +146,7 @@ void GLTexturebuffer::setFilterMode(FilterMode newMode) {
       break;
     }
     glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  }
-  if (dim == 2) {
+  } else if (dim == 2) {
 
     switch (newMode) {
     case FilterMode::Nearest:
@@ -116,10 +164,11 @@ void GLTexturebuffer::setFilterMode(FilterMode newMode) {
 }
 
 void GLTexturebuffer::bind() {
-  if (dim == 1) {
+  if (cubeMap) {
+    glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
+  } else if (dim == 1) {
     glBindTexture(GL_TEXTURE_1D, handle);
-  }
-  if (dim == 2) {
+  } else if (dim == 2) {
     glBindTexture(GL_TEXTURE_2D, handle);
   }
 }
