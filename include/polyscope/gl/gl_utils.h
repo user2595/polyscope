@@ -49,6 +49,9 @@ public:
   // create a 2D texture from data
   GLTexturebuffer(GLint format, unsigned int sizeX_, unsigned int sizeY_, unsigned char* data = nullptr);
 
+  // create a 2D cubemap texture from data
+  GLTexturebuffer(GLint format, unsigned int sizeX_, unsigned int sizeY_, std::array<unsigned char*, 6> data);
+
   ~GLTexturebuffer();
 
   void setFilterMode(FilterMode newMode);
@@ -68,6 +71,7 @@ private:
   GLint format;
   unsigned int sizeX, sizeY;
   int dim;
+  bool cubeMap = false;
 };
 
 // Encapsulate a renderbuffer
