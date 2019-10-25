@@ -137,6 +137,7 @@ SET(SRCS
   surface_scalar_quantity.cpp
   surface_color_quantity.cpp
   surface_distance_quantity.cpp
+  surface_earth_quantity.cpp
   surface_vector_quantity.cpp
   surface_texture_quantity.cpp
   surface_normal_quantity.cpp

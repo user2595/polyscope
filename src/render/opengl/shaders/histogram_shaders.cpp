@@ -51,7 +51,7 @@ const ShaderStageSpecification HISTOGRAM_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_colormap", 1}
+     {"t_colormap", TextureTarget::OneD}
     },
     
     // source 

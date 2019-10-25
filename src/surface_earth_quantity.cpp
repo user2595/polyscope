@@ -22,9 +22,18 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
     scaleFactors.emplace_back(0);
   }
 }
+
 SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
                                            std::vector<double> scaleFactors_, DataType dataType_)
     : SurfaceMeshQuantity(name, mesh_, true), dataType(dataType_), values(values_) {
+  for (size_t i = 0; i < values.size(); ++i) {
+    scaleFactors.emplace_back((float)scaleFactors_[i]);
+  }
+}
+
+SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
+                                           std::vector<double> scaleFactors_, bool cornerData_, DataType dataType_)
+    : SurfaceMeshQuantity(name, mesh_, true), dataType(dataType_), values(values_), cornerData(cornerData_) {
   for (size_t i = 0; i < values.size(); ++i) {
     scaleFactors.emplace_back((float)scaleFactors_[i]);
   }
@@ -94,6 +103,7 @@ void SurfaceEarthQuantity::fillPositionBuffers(gl::GLProgram& p) {
 
   glm::vec3 zero{0.f, 0.f, 0.f};
 
+  size_t cornerCounter = 0;
   for (size_t iF = 0; iF < parent.nFaces(); iF++) {
     auto& face = parent.faces[iF];
     size_t D = face.size();
@@ -137,10 +147,11 @@ void SurfaceEarthQuantity::fillPositionBuffers(gl::GLProgram& p) {
       baryCoords.emplace_back(glm::vec3{0.f, 1.f, 0.f});
       baryCoords.emplace_back(glm::vec3{0.f, 0.f, 1.f});
 
-      scaleFactor.emplace_back(glm::vec3{scaleFactors[vRoot], 0.f, 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, scaleFactors[vB], 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, 0.f, scaleFactors[vC]});
+      scaleFactor.emplace_back(glm::vec3{vRootSF, 0.f, 0.f});
+      scaleFactor.emplace_back(glm::vec3{0.f, vBSF, 0.f});
+      scaleFactor.emplace_back(glm::vec3{0.f, 0.f, vCSF});
     }
+    cornerCounter += D;
   }
 
   // Store data in buffers

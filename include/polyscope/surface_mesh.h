@@ -17,6 +17,7 @@
 #include "polyscope/surface_color_quantity.h"
 #include "polyscope/surface_count_quantity.h"
 #include "polyscope/surface_distance_quantity.h"
+#include "polyscope/surface_earth_quantity.h"
 #include "polyscope/surface_graph_quantity.h"
 #include "polyscope/surface_normal_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
@@ -59,6 +60,8 @@ class SurfaceVertexIsolatedScalarQuantity;
 class SurfaceGraphQuantity;
 class SurfaceVertexNormalQuantity;
 class SurfaceFaceNormalQuantity;
+
+class SurfaceEarthQuantity;
 
 template <> // Specialize the quantity type
 struct QuantityTypeHelper<SurfaceMesh> {
@@ -158,6 +161,12 @@ public:
   SurfaceGraphQuantity* addSurfaceGraphQuantity(std::string name, const std::vector<P>& paths);
   template <class P>
   SurfaceGraphQuantity* addSurfaceGraphQuantity2D(std::string name, const std::vector<P>& paths);
+  template <class T>
+  SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords);
+  template <class T, class S>
+  SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords, const S& scaleFactors);
+  template <class T, class S>
+  SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords, const S& scaleFactors, bool cornerData);
 
   // = I/O Selections
   template <class T>
@@ -385,6 +394,10 @@ private:
 	SurfaceGraphQuantity* addSurfaceGraphQuantityImpl(std::string name, const std::vector<glm::vec3>& nodes, const std::vector<std::array<size_t, 2>>& edges);
   SurfaceVertexNormalQuantity* addVertexNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
   SurfaceFaceNormalQuantity* addFaceNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
+
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions);
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors);
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors, bool cornerData);
 
   // === Helper implementations
 

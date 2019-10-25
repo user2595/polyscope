@@ -51,9 +51,9 @@ static const FragShader PLAIN_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
     },
     
     // output location
@@ -132,10 +132,10 @@ static const FragShader VERTCOLOR_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_colormap", 1}
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
+     {"t_colormap", TextureTarget::OneD}
     },
     
     // output location
@@ -223,10 +223,10 @@ static const FragShader VERTBINARY_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_colormap", 1}
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
+     {"t_colormap", TextureTarget::OneD}
     },
     
     // output location
@@ -309,9 +309,9 @@ static const FragShader VERTCOLOR3_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
     },
     
     // output location
@@ -394,10 +394,10 @@ static const FragShader HALFEDGECOLOR_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_colormap", 1}
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
+     {"t_colormap", TextureTarget::OneD}
     },
     
     // output location
