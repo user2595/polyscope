@@ -269,6 +269,16 @@ SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantity(std::string name, con
                                      standardizeVectorArray<std::array<size_t, 2>, 2>(edges));
 }
 
+template <class T>
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions));
+}
+
+template <class T, class S>
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions, const S& scaleFactors) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions), standardizeArray<double>(scaleFactors));
+}
+
 template <class P, class E>
 SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantity2D(std::string name, const P& nodes, const E& edges) {
 

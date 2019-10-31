@@ -177,9 +177,10 @@ void SurfaceMesh::ensureHaveManifoldConnectivity() {
   twinHalfedge.resize(nHalfedges());
 
   // Maps from edge (sorted) to all halfedges incident on that edge
-  std::unordered_map<std::pair<size_t, size_t>, std::vector<size_t>, polyscope::hash_combine::hash<std::pair<size_t, size_t>>>
+  std::unordered_map<std::pair<size_t, size_t>, std::vector<size_t>,
+                     polyscope::hash_combine::hash<std::pair<size_t, size_t>>>
       edgeInds;
-  
+
   // Fill out faceForHalfedge and populate edge lookup map
   for (size_t iF = 0; iF < nFaces(); iF++) {
     auto& face = faces[iF];
@@ -188,7 +189,7 @@ void SurfaceMesh::ensureHaveManifoldConnectivity() {
 
     for (size_t j = 0; j < D; j++) {
       size_t iV = face[j];
-      size_t iVNext = face[(j+1)%D];
+      size_t iVNext = face[(j + 1) % D];
       size_t iHe = halfedgeIndices[iF][j];
 
       faceForHalfedge[iHe] = iF;
@@ -213,7 +214,7 @@ void SurfaceMesh::ensureHaveManifoldConnectivity() {
 
     for (size_t j = 0; j < D; j++) {
       size_t iV = face[j];
-      size_t iVNext = face[(j+1)%D];
+      size_t iVNext = face[(j + 1) % D];
       size_t iHe = halfedgeIndices[iF][j];
 
       std::pair<size_t, size_t> edgeKey(std::min(iV, iVNext), std::max(iV, iVNext));
@@ -221,8 +222,8 @@ void SurfaceMesh::ensureHaveManifoldConnectivity() {
 
       // Pick the first halfedge we find which is not this one
       size_t myTwin = INVALID_IND;
-      for(size_t t : edgeHalfedges) {
-        if(t != iHe) {
+      for (size_t t : edgeHalfedges) {
+        if (t != iHe) {
           myTwin = t;
           break;
         }
@@ -1185,6 +1186,21 @@ SurfaceDistanceQuantity* SurfaceMesh::addVertexSignedDistanceQuantityImpl(std::s
 SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantityImpl(std::string name, const std::vector<glm::vec3>& nodes,
                                                                const std::vector<std::array<size_t, 2>>& edges) {
   SurfaceGraphQuantity* q = new SurfaceGraphQuantity(name, nodes, edges, *this);
+  addQuantity(q);
+  return q;
+}
+
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantityImpl(std::string name,
+                                                               const std::vector<glm::vec3>& positions) {
+  SurfaceEarthQuantity* q = new SurfaceEarthQuantity(name, *this, positions);
+  addQuantity(q);
+  return q;
+}
+
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantityImpl(std::string name,
+                                                               const std::vector<glm::vec3>& positions,
+                                                               const std::vector<double>& scaleFactors) {
+  SurfaceEarthQuantity* q = new SurfaceEarthQuantity(name, *this, positions, scaleFactors);
   addQuantity(q);
   return q;
 }

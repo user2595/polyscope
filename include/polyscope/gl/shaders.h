@@ -14,6 +14,9 @@ namespace gl {
 // Enum for openGL data types
 enum class GLData { Vector2Float, Vector3Float, Vector4Float, Matrix44Float, Float, Int, UInt, Index };
 
+// Enum for openGL texture targets
+enum class TextureTarget { Cube, OneD = 1, TwoD = 2 };
+
 // Types to encapsulate uniform and attribute variables in shaders
 struct ShaderUniform {
   const std::string name;
@@ -29,7 +32,7 @@ struct ShaderAttribute {
 };
 struct ShaderTexture {
   const std::string name;
-  const int dim;
+  const TextureTarget textureTarget;
 };
 
 
@@ -64,3 +67,22 @@ struct FragShader {
 
 } // namespace gl
 } // namespace polyscope
+
+namespace std {
+inline string to_string(polyscope::gl::TextureTarget target) {
+  switch (target) {
+  case polyscope::gl::TextureTarget::OneD:
+    return "OneD";
+    break;
+  case polyscope::gl::TextureTarget::TwoD:
+    return "TwoD";
+    break;
+  case polyscope::gl::TextureTarget::Cube:
+    return "Cube";
+    break;
+  default:
+    return "Unrecognized texture target";
+    break;
+  }
+}
+} // namespace std
