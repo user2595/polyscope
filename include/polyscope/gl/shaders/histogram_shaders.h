@@ -48,7 +48,7 @@ static const FragShader HISTORGRAM_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_colormap", 1}
+     {"t_colormap", TextureTarget::OneD}
     },
     
     // output location

@@ -56,8 +56,8 @@ static const FragShader GROUND_PLANE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_ground", 2},
-        {"t_mirrorImage", 2},
+     {"t_ground", TextureTarget::TwoD},
+     {"t_mirrorImage", TextureTarget::TwoD},
     },
     
     // output location
