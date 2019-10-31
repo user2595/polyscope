@@ -45,7 +45,7 @@ static const FragShader TEXTURE_DRAW_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_image", 2}
+     {"t_image", TextureTarget::TwoD}
     },
     
     // output location

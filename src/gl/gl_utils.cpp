@@ -18,7 +18,7 @@ namespace gl {
 
 // create a 1D texture from data
 GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int size1D, unsigned char* data)
-    : format(format_), sizeX(size1D), dim(1) {
+    : format(format_), sizeX(size1D), textureTarget(TextureTarget::OneD) {
   if (size1D > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
 
   glGenTextures(1, &handle);
@@ -28,7 +28,7 @@ GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int size1D, unsigned ch
   setFilterMode(FilterMode::Linear);
 }
 GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int size1D, float* data)
-    : format(format_), sizeX(size1D), dim(1) {
+    : format(format_), sizeX(size1D), textureTarget(TextureTarget::OneD) {
   if (size1D > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
 
   glGenTextures(1, &handle);
@@ -40,7 +40,7 @@ GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int size1D, float* data
 
 // create a 2D texture from data
 GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int sizeX_, unsigned int sizeY_, unsigned char* data)
-    : format(format_), sizeX(sizeX_), sizeY(sizeY_), dim(2) {
+    : format(format_), sizeX(sizeX_), sizeY(sizeY_), textureTarget(TextureTarget::TwoD) {
   if (sizeX > (1 << 22) || sizeY > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
 
   glGenTextures(1, &handle);
@@ -53,9 +53,8 @@ GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int sizeX_, unsigned in
 }
 
 // create a 2D cubemap texture from data
-GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int sizeX_, unsigned int sizeY_,
-                                 std::array<unsigned char*, 6> data)
-    : format(format_), sizeX(sizeX_), sizeY(sizeY_), dim(2) {
+GLTexturebuffer::GLTexturebuffer(GLint format_, unsigned int size_, std::array<unsigned char*, 6> data)
+    : format(format_), sizeX(size_), sizeY(size_), textureTarget(TextureTarget::Cube) {
   if (sizeX > (1 << 22) || sizeY > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
 
   glGenTextures(1, &handle);
@@ -84,10 +83,9 @@ void GLTexturebuffer::resize(unsigned int newLen) {
 
   sizeX = newLen;
 
-  if (dim == 1) {
+  if (textureTarget == TextureTarget::OneD) {
     glTexImage1D(GL_TEXTURE_1D, 0, format, sizeX, 0, format, GL_UNSIGNED_BYTE, 0);
-  }
-  if (dim == 2) {
+  } else {
     throw std::runtime_error("OpenGL error: called 1D resize on 2D texture");
   }
 }
@@ -98,21 +96,24 @@ void GLTexturebuffer::resize(unsigned int newX, unsigned int newY) {
   sizeX = newX;
   sizeY = newY;
 
-  if (dim == 1) {
+  switch (textureTarget) {
+  case TextureTarget::OneD:
     throw std::runtime_error("OpenGL error: called 2D resize on 1D texture");
-  }
-  if (dim == 2) {
-    if (cubeMap) {
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-      glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-
-    } else {
-      glTexImage2D(GL_TEXTURE_2D, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
-    }
+    break;
+  case TextureTarget::TwoD:
+    glTexImage2D(GL_TEXTURE_2D, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    break;
+  case TextureTarget::Cube:
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, format, sizeX, sizeY, 0, format, GL_UNSIGNED_BYTE, 0);
+    break;
+  default:
+    throw std::runtime_error("OpenGL error: did not recognize texture target.");
+    break;
   }
 }
 
@@ -120,7 +121,35 @@ void GLTexturebuffer::setFilterMode(FilterMode newMode) {
 
   bind();
 
-  if (cubeMap) {
+  switch (textureTarget) {
+  case TextureTarget::OneD:
+    switch (newMode) {
+    case FilterMode::Nearest:
+      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      break;
+    case FilterMode::Linear:
+      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      break;
+    }
+    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    break;
+  case TextureTarget::TwoD:
+    switch (newMode) {
+    case FilterMode::Nearest:
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      break;
+    case FilterMode::Linear:
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      break;
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    break;
+  case TextureTarget::Cube:
     switch (newMode) {
     case FilterMode::Nearest:
       glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -134,42 +163,21 @@ void GLTexturebuffer::setFilterMode(FilterMode newMode) {
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  } else if (dim == 1) {
-    switch (newMode) {
-    case FilterMode::Nearest:
-      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      break;
-    case FilterMode::Linear:
-      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      break;
-    }
-    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  } else if (dim == 2) {
-
-    switch (newMode) {
-    case FilterMode::Nearest:
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-      break;
-    case FilterMode::Linear:
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      break;
-    }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    break;
   }
-}
+} // namespace gl
 
 void GLTexturebuffer::bind() {
-  if (cubeMap) {
-    glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
-  } else if (dim == 1) {
+  switch (textureTarget) {
+  case TextureTarget::OneD:
     glBindTexture(GL_TEXTURE_1D, handle);
-  } else if (dim == 2) {
+    break;
+  case TextureTarget::TwoD:
     glBindTexture(GL_TEXTURE_2D, handle);
+    break;
+  case TextureTarget::Cube:
+    glBindTexture(GL_TEXTURE_CUBE_MAP, handle);
+    break;
   }
 }
 
@@ -519,11 +527,11 @@ void GLProgram::addUniqueUniform(ShaderUniform newUniform) {
 
 void GLProgram::addUniqueTexture(ShaderTexture newTexture) {
   for (GLTexture& t : textures) {
-    if (t.name == newTexture.name && t.dim == newTexture.dim) {
+    if (t.name == newTexture.name && t.textureTarget == newTexture.textureTarget) {
       return;
     }
   }
-  textures.push_back(GLTexture{newTexture.name, newTexture.dim, 777, nullptr, 777, false, false});
+  textures.push_back(GLTexture{newTexture.name, newTexture.textureTarget, 777, nullptr, 777, false, false});
 }
 
 void GLProgram::deleteAttributeBuffer(GLAttribute attribute) {
@@ -1165,8 +1173,8 @@ void GLProgram::setTexture1D(std::string name, unsigned char* texData, unsigned 
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 1) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.textureTarget != TextureTarget::OneD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.textureTarget));
     }
 
     // Create a new texture object
@@ -1198,8 +1206,8 @@ void GLProgram::setTexture2D(std::string name, unsigned char* texData, unsigned 
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 2) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.textureTarget != TextureTarget::TwoD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.textureTarget));
     }
 
     if (withAlpha) {
@@ -1235,6 +1243,55 @@ void GLProgram::setTexture2D(std::string name, unsigned char* texData, unsigned 
   throw std::invalid_argument("No texture with name " + name);
 }
 
+void GLProgram::setTextureCube(std::string name, std::array<unsigned char*, 6> texData, unsigned int width,
+                               bool withAlpha, bool useMipMap, bool repeat) {
+
+  // Find the right texture
+  for (GLTexture& t : textures) {
+    if (t.name != name) continue;
+
+    if (t.isSet) {
+      throw std::invalid_argument("Attempted to set texture twice");
+    }
+
+    if (t.textureTarget != TextureTarget::Cube) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.textureTarget));
+    }
+
+    if (withAlpha) {
+      t.textureBuffer = new GLTexturebuffer(GL_RGBA, width, texData);
+    } else {
+      t.textureBuffer = new GLTexturebuffer(GL_RGB, width, texData);
+    }
+    t.managedByProgram = true;
+
+    // Set policies
+    if (repeat) {
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    } else {
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Use mip maps
+    if (useMipMap) {
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    } else {
+      glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    }
+
+    t.isSet = true;
+    return;
+  }
+
+  throw std::invalid_argument("No texture with name " + name);
+}
+
 void GLProgram::setTextureFromBuffer(std::string name, GLTexturebuffer* textureBuffer) {
   glUseProgram(programHandle);
 
@@ -1242,8 +1299,8 @@ void GLProgram::setTextureFromBuffer(std::string name, GLTexturebuffer* textureB
   for (GLTexture& t : textures) {
     if (t.name != name) continue;
 
-    if (t.dim != (int)textureBuffer->getDimension()) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.textureTarget != textureBuffer->getTextureTarget()) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.textureTarget));
     }
 
     t.textureBuffer = textureBuffer;
@@ -1267,8 +1324,8 @@ void GLProgram::setTextureFromColormap(std::string name, const ValueColorMap& co
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 1) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.textureTarget != TextureTarget::OneD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.textureTarget));
     }
 
     // Fill a buffer with the data
@@ -1404,12 +1461,15 @@ void GLProgram::activateTextures() {
 
     // Bind to the texture buffer
     GLenum targetType;
-    switch (t.dim) {
-    case 1:
+    switch (t.textureTarget) {
+    case TextureTarget::OneD:
       targetType = GL_TEXTURE_1D;
       break;
-    case 2:
+    case TextureTarget::TwoD:
       targetType = GL_TEXTURE_2D;
+      break;
+    case TextureTarget::Cube:
+      targetType = GL_TEXTURE_CUBE_MAP;
       break;
     }
 

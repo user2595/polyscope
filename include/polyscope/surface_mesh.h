@@ -17,6 +17,7 @@
 #include "polyscope/surface_color_quantity.h"
 #include "polyscope/surface_count_quantity.h"
 #include "polyscope/surface_distance_quantity.h"
+#include "polyscope/surface_earth_quantity.h"
 #include "polyscope/surface_graph_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
@@ -48,6 +49,7 @@ class SurfaceVertexIntrinsicVectorQuantity;
 class SurfaceFaceIntrinsicVectorQuantity;
 class SurfaceOneFormIntrinsicVectorQuantity;
 
+class SurfaceEarthQuantity;
 
 template <> // Specialize the quantity type
 struct QuantityTypeHelper<SurfaceMesh> {
@@ -154,6 +156,10 @@ public:
   SurfaceGraphQuantity* addSurfaceGraphQuantity(std::string name, const std::vector<P>& paths);
   template <class P>
   SurfaceGraphQuantity* addSurfaceGraphQuantity2D(std::string name, const std::vector<P>& paths);
+  template <class T>
+  SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords);
+  template <class T, class S>
+  SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords, const S& scaleFactors);
 
   // = I/O Selections
   template <class T>
@@ -359,6 +365,9 @@ private:
   SurfaceFaceIntrinsicVectorQuantity* addFaceIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);
   SurfaceVertexIntrinsicVectorQuantity* addVertexIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);
   SurfaceOneFormIntrinsicVectorQuantity* addOneFormIntrinsicVectorQuantityImpl(std::string name, const std::vector<double>& data, const std::vector<char>& orientations);
+
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions);
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors);
 
   // === Helper implementations
 

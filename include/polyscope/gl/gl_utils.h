@@ -40,6 +40,8 @@ enum class DrawMode {
 
 // Encapsulate a texture
 enum class FilterMode { Nearest, Linear };
+// enum TextureTarget defined in shaders.h
+
 class GLTexturebuffer {
 public:
   // create a 1D texture from data
@@ -50,7 +52,7 @@ public:
   GLTexturebuffer(GLint format, unsigned int sizeX_, unsigned int sizeY_, unsigned char* data = nullptr);
 
   // create a 2D cubemap texture from data
-  GLTexturebuffer(GLint format, unsigned int sizeX_, unsigned int sizeY_, std::array<unsigned char*, 6> data);
+  GLTexturebuffer(GLint format, unsigned int size_, std::array<unsigned char*, 6> data);
 
   ~GLTexturebuffer();
 
@@ -64,13 +66,13 @@ public:
   GLuint getHandle() const { return handle; }
   unsigned int getSizeX() const { return sizeX; }
   unsigned int getSizeY() const { return sizeY; }
-  int getDimension() const { return dim; }
+  TextureTarget getTextureTarget() const { return textureTarget; }
 
 private:
   GLuint handle;
   GLint format;
   unsigned int sizeX, sizeY;
-  int dim;
+  TextureTarget textureTarget;
   bool cubeMap = false;
 };
 
@@ -207,6 +209,8 @@ public:
   void setTexture1D(std::string name, unsigned char* texData, unsigned int length);
   void setTexture2D(std::string name, unsigned char* texData, unsigned int width, unsigned int height,
                     bool withAlpha = true, bool useMipMap = false, bool repeat = false);
+  void setTextureCube(std::string name, std::array<unsigned char*, 6> texData, unsigned int width,
+                      bool withAlpha = true, bool useMipMap = false, bool repeat = false);
   void setTextureFromColormap(std::string name, const ValueColorMap& colormap, bool allowUpdate = false);
   void setTextureFromBuffer(std::string name, GLTexturebuffer* textureBuffer);
 
@@ -240,7 +244,7 @@ private:
   };
   struct GLTexture {
     std::string name;
-    int dim;
+    TextureTarget textureTarget;
     GLint location;
     GLTexturebuffer* textureBuffer;
     unsigned int index;

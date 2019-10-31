@@ -53,6 +53,7 @@ SET(SRCS
   surface_scalar_quantity.cpp
   surface_color_quantity.cpp
   surface_distance_quantity.cpp
+  surface_earth_quantity.cpp
   surface_vector_quantity.cpp
   surface_count_quantity.cpp
   surface_graph_quantity.cpp
@@ -106,6 +107,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface_color_quantity.h
   ${INCLUDE_ROOT}/surface_count_quantity.h
   ${INCLUDE_ROOT}/surface_distance_quantity.h
+  ${INCLUDE_ROOT}/surface_earth_quantity.h
   ${INCLUDE_ROOT}/surface_graph_quantity.h
   ${INCLUDE_ROOT}/surface_input_curve_quantity.h
   ${INCLUDE_ROOT}/surface_mesh.h
@@ -131,6 +133,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/gl/shaders/common.h
   ${INCLUDE_ROOT}/gl/shaders/cylinder_shaders.h
   ${INCLUDE_ROOT}/gl/shaders/distance_shaders.h
+  ${INCLUDE_ROOT}/gl/shaders/earth_shaders.h
   ${INCLUDE_ROOT}/gl/shaders/ground_plane_shaders.h
   ${INCLUDE_ROOT}/gl/shaders/histogram_shaders.h
   ${INCLUDE_ROOT}/gl/shaders/image_shaders.h
