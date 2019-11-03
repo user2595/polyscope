@@ -60,7 +60,12 @@ SET(SRCS
   #surface_subset_quantity.cpp
   #surface_selection_quantity.cpp
   #surface_input_curve_quantity.cpp
-  
+
+  # Tet Mesh
+  tet_mesh.cpp
+  tet_scalar_quantity.cpp
+  tet_vector_quantity.cpp
+
   # Curve network
   curve_network.cpp
   curve_network_scalar_quantity.cpp
@@ -120,6 +125,9 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface_subset_quantity.h
   ${INCLUDE_ROOT}/surface_vector_quantity.h
   ${INCLUDE_ROOT}/trace_vector_field.h
+  ${INCLUDE_ROOT}/tet_mesh.h
+  ${INCLUDE_ROOT}/tet_scalar_quantity.h
+  ${INCLUDE_ROOT}/tet_vector_quantity.h
   ${INCLUDE_ROOT}/utilities.h
   ${INCLUDE_ROOT}/view.h
   ${INCLUDE_ROOT}/gl/colors.h
