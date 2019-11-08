@@ -14,6 +14,8 @@ public:
                        DataType dataType_ = DataType::STANDARD);
   SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
                        std::vector<double> scaleFactors_, DataType dataType_ = DataType::STANDARD);
+  SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
+                       std::vector<double> scaleFactors_, bool cornerData_, DataType dataType_ = DataType::STANDARD);
 
   virtual void draw() override;
   virtual void buildCustomUI() override;
@@ -30,6 +32,8 @@ public:
   std::vector<glm::vec3> values;
   std::vector<float> scaleFactors;
   bool projectiveInterpolate = true;
+
+  bool cornerData = false;
 
 protected:
   // UI internals

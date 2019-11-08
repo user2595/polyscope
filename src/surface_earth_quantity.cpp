@@ -22,9 +22,18 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
     scaleFactors.emplace_back(0);
   }
 }
+
 SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
                                            std::vector<double> scaleFactors_, DataType dataType_)
     : SurfaceMeshQuantity(name, mesh_, true), dataType(dataType_), values(values_) {
+  for (size_t i = 0; i < values.size(); ++i) {
+    scaleFactors.emplace_back((float)scaleFactors_[i]);
+  }
+}
+
+SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
+                                           std::vector<double> scaleFactors_, bool cornerData_, DataType dataType_)
+    : SurfaceMeshQuantity(name, mesh_, true), dataType(dataType_), values(values_), cornerData(cornerData_) {
   for (size_t i = 0; i < values.size(); ++i) {
     scaleFactors.emplace_back((float)scaleFactors_[i]);
   }
@@ -94,6 +103,7 @@ void SurfaceEarthQuantity::fillPositionBuffers(gl::GLProgram& p) {
 
   glm::vec3 zero{0.f, 0.f, 0.f};
 
+  size_t cornerCounter = 0;
   for (size_t iF = 0; iF < parent.nFaces(); iF++) {
     auto& face = parent.faces[iF];
     size_t D = face.size();
@@ -101,32 +111,48 @@ void SurfaceEarthQuantity::fillPositionBuffers(gl::GLProgram& p) {
     // implicitly triangulate from root
     size_t vRoot = face[0];
     for (size_t j = 1; (j + 1) < D; j++) {
-      size_t vB = face[j];
-      size_t vC = face[(j + 1) % D];
 
-      // val.push_back(values[vRoot]);
-      // val.push_back(values[vB]);
-      // val.push_back(values[vC]);
-      texCoord0.emplace_back(values[vRoot]);
+      glm::vec3 vRootVal, vBVal, vCVal;
+      double vRootSF, vBSF, vCSF;
+      if (cornerData) {
+        vRootVal = values[cornerCounter];
+        vBVal = values[cornerCounter + j];
+        vCVal = values[cornerCounter + j + 1];
+        vRootSF = scaleFactors[cornerCounter];
+        vBSF = scaleFactors[cornerCounter + j];
+        vCSF = scaleFactors[cornerCounter + j + 1];
+      } else {
+        size_t vB = face[j];
+        size_t vC = face[(j + 1) % D];
+        vRootVal = values[vRoot];
+        vBVal = values[vB];
+        vCVal = values[vC];
+        vRootSF = scaleFactors[vRoot];
+        vBSF = scaleFactors[vB];
+        vCSF = scaleFactors[vC];
+      }
+
+      texCoord0.emplace_back(vRootVal);
       texCoord0.emplace_back(zero);
       texCoord0.emplace_back(zero);
 
       texCoord1.emplace_back(zero);
-      texCoord1.emplace_back(values[vB]);
+      texCoord1.emplace_back(vBVal);
       texCoord1.emplace_back(zero);
 
       texCoord2.emplace_back(zero);
       texCoord2.emplace_back(zero);
-      texCoord2.emplace_back(values[vC]);
+      texCoord2.emplace_back(vCVal);
 
       baryCoords.emplace_back(glm::vec3{1.f, 0.f, 0.f});
       baryCoords.emplace_back(glm::vec3{0.f, 1.f, 0.f});
       baryCoords.emplace_back(glm::vec3{0.f, 0.f, 1.f});
 
-      scaleFactor.emplace_back(glm::vec3{scaleFactors[vRoot], 0.f, 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, scaleFactors[vB], 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, 0.f, scaleFactors[vC]});
+      scaleFactor.emplace_back(glm::vec3{vRootSF, 0.f, 0.f});
+      scaleFactor.emplace_back(glm::vec3{0.f, vBSF, 0.f});
+      scaleFactor.emplace_back(glm::vec3{0.f, 0.f, vCSF});
     }
+    cornerCounter += D;
   }
 
   // Store data in buffers

@@ -160,6 +160,8 @@ public:
   SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords);
   template <class T, class S>
   SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords, const S& scaleFactors);
+  template <class T, class S>
+    SurfaceEarthQuantity* addSurfaceEarthQuantity(std::string name, const T& coords, const S& scaleFactors, bool cornerData);
 
   // = I/O Selections
   template <class T>
@@ -368,6 +370,7 @@ private:
 
   SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions);
   SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors);
+  SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors, bool cornerData);
 
   // === Helper implementations
 

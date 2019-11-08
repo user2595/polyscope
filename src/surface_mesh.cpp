@@ -1204,6 +1204,14 @@ SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantityImpl(std::string name,
   addQuantity(q);
   return q;
 }
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantityImpl(std::string name,
+                                                               const std::vector<glm::vec3>& positions,
+                                                               const std::vector<double>& scaleFactors,
+                                                               bool cornerData) {
+  SurfaceEarthQuantity* q = new SurfaceEarthQuantity(name, *this, positions, scaleFactors, cornerData);
+  addQuantity(q);
+  return q;
+}
 
 SurfaceCornerParameterizationQuantity*
 SurfaceMesh::addParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords,
