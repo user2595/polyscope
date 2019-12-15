@@ -21,6 +21,7 @@
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
 #include "polyscope/surface_scalar_quantity.h"
+#include "polyscope/surface_texture_quantity.h"
 #include "polyscope/surface_vector_quantity.h"
 //#include "polyscope/surface_selection_quantity.h"
 //#include "polyscope/surface_subset_quantity.h"
@@ -31,6 +32,14 @@ namespace polyscope {
 // Forward declarations for quantities
 class SurfaceVertexColorQuantity;
 class SurfaceFaceColorQuantity;
+class SurfaceVertexCountQuantity;
+class SurfaceVertexIsolatedScalarQuantity;
+class SurfaceFaceCountQuantity;
+class SurfaceDistanceQuantity;
+class SurfaceGraphQuantity;
+class SurfaceCornerParameterizationQuantity;
+class SurfaceTextureQuantity;
+class SurfaceVertexParameterizationQuantity;
 class SurfaceVertexScalarQuantity;
 class SurfaceFaceScalarQuantity;
 class SurfaceEdgeScalarQuantity;
@@ -86,6 +95,8 @@ public:
 
   // === Quantity-related
   // clang-format off
+  template <class T>
+    SurfaceTextureQuantity* addCornerTextureQuantity(std::string name, const T& data, DataType type = DataType::STANDARD);
 
   // = Scalars (expect scalar array)
   template <class T> SurfaceVertexScalarQuantity* addVertexScalarQuantity(std::string name, const T& data, DataType type = DataType::STANDARD); 
@@ -341,6 +352,7 @@ private:
 
   // === Quantity adders
 
+  SurfaceTextureQuantity* addCornerTextureQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, DataType type);
   SurfaceVertexColorQuantity* addVertexColorQuantityImpl(std::string name, const std::vector<glm::vec3>& colors);
   SurfaceFaceColorQuantity* addFaceColorQuantityImpl(std::string name, const std::vector<glm::vec3>& colors);
   SurfaceVertexScalarQuantity* addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
@@ -375,7 +387,8 @@ SurfaceMesh* registerSurfaceMesh(std::string name, const V& vertexPositions, con
 template <class V, class F>
 SurfaceMesh* registerSurfaceMesh2D(std::string name, const V& vertexPositions, const F& faceIndices);
 template <class V, class F, class P>
-SurfaceMesh* registerSurfaceMesh(std::string name, const V& vertexPositions, const F& faceIndices, const std::array<std::pair<P, size_t>, 5>& perms);
+SurfaceMesh* registerSurfaceMesh(std::string name, const V& vertexPositions, const F& faceIndices,
+                                 const std::array<std::pair<P, size_t>, 5>& perms);
 
 
 // Shorthand to get a mesh from polyscope

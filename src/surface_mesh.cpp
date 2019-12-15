@@ -26,8 +26,8 @@ SurfaceMesh::SurfaceMesh(std::string name, const std::vector<glm::vec3>& vertexP
     : QuantityStructure<SurfaceMesh>(name, typeName()), vertices(vertexPositions), faces(faceIndices),
       shadeSmooth(uniquePrefix() + "shadeSmooth", false),
       surfaceColor(uniquePrefix() + "surfaceColor", getNextUniqueColor()),
-      edgeColor(uniquePrefix() + "edgeColor", glm::vec3{0., 0., 0.}),
-      material(uniquePrefix() + "material", "clay"), edgeWidth(uniquePrefix() + "edgeWidth", 0.) {
+      edgeColor(uniquePrefix() + "edgeColor", glm::vec3{0., 0., 0.}), material(uniquePrefix() + "material", "clay"),
+      edgeWidth(uniquePrefix() + "edgeWidth", 0.) {
 
   computeCounts();
   computeGeometryData();
@@ -1219,11 +1219,29 @@ SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantityImpl(std::string name,
   return q;
 }
 
+SurfaceCornerProjectiveParameterizationQuantity*
+SurfaceMesh::addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords,
+                                                       const std::vector<double>& cornerScaleFactors,
+                                                       ParamCoordsType type) {
+  SurfaceCornerProjectiveParameterizationQuantity* q = new SurfaceCornerProjectiveParameterizationQuantity(
+      name, applyPermutation(coords, cornerPerm), applyPermutation(cornerScaleFactors, cornerPerm), type, *this);
+  addQuantity(q);
+
+  return q;
+}
 
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data,
                                                                       DataType type) {
   SurfaceVertexScalarQuantity* q =
       new SurfaceVertexScalarQuantity(name, applyPermutation(data, vertexPerm), *this, type);
+  addQuantity(q);
+  return q;
+}
+
+
+SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantityImpl(std::string name,
+                                                                  const std::vector<glm::vec2>& coords, DataType type) {
+  SurfaceTextureQuantity* q = new SurfaceTextureQuantity(name, *this, applyPermutation(coords, cornerPerm), type);
   addQuantity(q);
   return q;
 }

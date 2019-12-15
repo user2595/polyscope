@@ -91,7 +91,7 @@ void CurveNetwork::draw() {
 
     // Draw the actual curve network
     edgeProgram->draw();
-		nodeProgram->draw();
+    nodeProgram->draw();
   }
 
   // Draw the quantities

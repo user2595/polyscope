@@ -136,11 +136,12 @@ SET(SRCS
   surface_mesh_io.cpp
   surface_scalar_quantity.cpp
   surface_color_quantity.cpp
-	surface_distance_quantity.cpp
-	surface_parameterization_quantity.cpp
-	surface_vector_quantity.cpp
-	surface_count_quantity.cpp
-	surface_graph_quantity.cpp
+  surface_distance_quantity.cpp
+  surface_vector_quantity.cpp
+  surface_texture_quantity.cpp
+  surface_count_quantity.cpp
+  surface_graph_quantity.cpp
+  surface_parameterization_quantity.cpp
   #surface_subset_quantity.cpp
   #surface_selection_quantity.cpp
   #surface_input_curve_quantity.cpp

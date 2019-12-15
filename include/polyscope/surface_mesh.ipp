@@ -296,6 +296,25 @@ SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantity(std::string name, con
                                      standardizeVectorArray<std::array<size_t, 2>, 2>(edges));
 }
 
+template <class T>
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions));
+}
+
+template <class T, class S>
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions,
+                                                           const S& scaleFactors) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions),
+                                     standardizeArray<double>(scaleFactors));
+}
+
+template <class T, class S>
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions, const S& scaleFactors,
+                                                           bool cornerData) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions),
+                                     standardizeArray<double>(scaleFactors), cornerData);
+}
+
 template <class P, class E>
 SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantity2D(std::string name, const P& nodes, const E& edges) {
 
@@ -349,6 +368,18 @@ SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantity2D(std::string name, c
   return addSurfaceGraphQuantity(name, paths3D);
 }
 
+
+template <class T>
+SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
+  validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
+  return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
+}
+
+template <class T>
+SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
+  validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
+  return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
+}
 
 template <class T>
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantity(std::string name, const T& data, DataType type) {
