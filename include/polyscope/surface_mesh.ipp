@@ -112,7 +112,7 @@ void SurfaceMesh::setVertexPermutation(const T& perm, size_t expectedSize) {
   if (vertexDataSize == 0) {
     // Find max element to set the data size
     for (size_t i : vertexPerm) {
-      vertexDataSize = std::max(vertexDataSize, i+1);
+      vertexDataSize = std::max(vertexDataSize, i + 1);
     }
   }
 }
@@ -127,7 +127,7 @@ void SurfaceMesh::setFacePermutation(const T& perm, size_t expectedSize) {
   if (faceDataSize == 0) {
     // Find max element to set the data size
     for (size_t i : facePerm) {
-      faceDataSize = std::max(faceDataSize, i+1);
+      faceDataSize = std::max(faceDataSize, i + 1);
     }
   }
 }
@@ -142,7 +142,7 @@ void SurfaceMesh::setEdgePermutation(const T& perm, size_t expectedSize) {
   if (edgeDataSize == 0) {
     // Find max element to set the data size
     for (size_t i : edgePerm) {
-      edgeDataSize = std::max(edgeDataSize, i+1);
+      edgeDataSize = std::max(edgeDataSize, i + 1);
     }
   }
 }
@@ -157,7 +157,7 @@ void SurfaceMesh::setHalfedgePermutation(const T& perm, size_t expectedSize) {
   if (halfedgeDataSize == 0) {
     // Find max element to set the data size
     for (size_t i : halfedgePerm) {
-      halfedgeDataSize = std::max(halfedgeDataSize, i+1);
+      halfedgeDataSize = std::max(halfedgeDataSize, i + 1);
     }
   }
 }
@@ -172,7 +172,7 @@ void SurfaceMesh::setCornerPermutation(const T& perm, size_t expectedSize) {
   if (cornerDataSize == 0) {
     // Find max element to set the data size
     for (size_t i : cornerPerm) {
-      cornerDataSize = std::max(cornerDataSize, i+1);
+      cornerDataSize = std::max(cornerDataSize, i + 1);
     }
   }
 }
@@ -275,13 +275,17 @@ SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, con
 }
 
 template <class T, class S>
-SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions, const S& scaleFactors) {
-  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions), standardizeArray<double>(scaleFactors));
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions,
+                                                           const S& scaleFactors) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions),
+                                     standardizeArray<double>(scaleFactors));
 }
 
 template <class T, class S>
-SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions, const S& scaleFactors, bool cornerData) {
-  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions), standardizeArray<double>(scaleFactors), cornerData);
+SurfaceEarthQuantity* SurfaceMesh::addSurfaceEarthQuantity(std::string name, const T& positions, const S& scaleFactors,
+                                                           bool cornerData) {
+  return addSurfaceEarthQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(positions),
+                                     standardizeArray<double>(scaleFactors), cornerData);
 }
 
 template <class P, class E>

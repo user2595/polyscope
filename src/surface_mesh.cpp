@@ -891,9 +891,11 @@ void SurfaceMesh::buildCustomUI() {
   ImGui::Text("#verts: %lld  #faces: %lld", nVertsL, nFacesL);
 
   { // colors
+    ImGui::PushItemWidth(30);
     ImGui::ColorEdit3("Color", (float*)&surfaceColor, ImGuiColorEditFlags_NoInputs);
+    ImGui::PopItemWidth();
     ImGui::SameLine();
-    ImGui::PushItemWidth(100);
+    ImGui::PushItemWidth(30);
     ImGui::ColorEdit3("Edge Color", (float*)&edgeColor, ImGuiColorEditFlags_NoInputs);
     ImGui::PopItemWidth();
   }
