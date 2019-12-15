@@ -61,12 +61,12 @@ void SurfaceEarthQuantity::setProgramTextures(gl::GLProgram& program) {
   // unsigned char* image = nullptr;
   std::array<unsigned char*, 6> images;
   std::array<std::string, 6> filenames;
-  filenames[0] = "/Users/mark/Desktop/EarthCube/R_earth-cube.png";
-  filenames[1] = "/Users/mark/Desktop/EarthCube/L_earth-cube.png";
-  filenames[2] = "/Users/mark/Desktop/EarthCube/U_earth-cube.png";
-  filenames[3] = "/Users/mark/Desktop/EarthCube/D_earth-cube.png";
-  filenames[4] = "/Users/mark/Desktop/EarthCube/F_earth-cube.png";
-  filenames[5] = "/Users/mark/Desktop/EarthCube/B_earth-cube.png";
+  filenames[0] = "/Users/mgillesp/Desktop/EarthCube/R_earth-cube.png";
+  filenames[1] = "/Users/mgillesp/Desktop/EarthCube/L_earth-cube.png";
+  filenames[2] = "/Users/mgillesp/Desktop/EarthCube/U_earth-cube.png";
+  filenames[3] = "/Users/mgillesp/Desktop/EarthCube/D_earth-cube.png";
+  filenames[4] = "/Users/mgillesp/Desktop/EarthCube/F_earth-cube.png";
+  filenames[5] = "/Users/mgillesp/Desktop/EarthCube/B_earth-cube.png";
 
   for (size_t i = 0; i < 6; ++i) {
     // stbi_set_flip_vertically_on_load(true);

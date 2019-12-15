@@ -55,6 +55,7 @@ SET(SRCS
   surface_distance_quantity.cpp
   surface_earth_quantity.cpp
   surface_vector_quantity.cpp
+  surface_texture_quantity.cpp
   surface_count_quantity.cpp
   surface_graph_quantity.cpp
   surface_parameterization_quantity.cpp
