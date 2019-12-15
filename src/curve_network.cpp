@@ -281,7 +281,9 @@ void CurveNetwork::buildEdgePickUI(size_t edgeInd) {
 
 void CurveNetwork::buildCustomUI() {
   ImGui::Text("nodes: %lld  edges: %lld", static_cast<long long int>(nNodes()), static_cast<long long int>(nEdges()));
+  ImGui::PushItemWidth(20);
   ImGui::ColorEdit3("Color", (float*)&baseColor, ImGuiColorEditFlags_NoInputs);
+  ImGui::PopItemWidth();
   ImGui::SameLine();
   ImGui::PushItemWidth(100);
   ImGui::SliderFloat("Radius", &radius, 0.0, .1, "%.5f", 3.);
