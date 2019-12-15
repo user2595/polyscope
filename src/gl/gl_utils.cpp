@@ -1203,7 +1203,7 @@ void GLProgram::setTexture2D(std::string name, unsigned char* texData, unsigned 
     if (t.name != name) continue;
 
     if (t.isSet) {
-      throw std::invalid_argument("Attempted to set texture twice");
+      // throw std::invalid_argument("Attempted to set texture twice");
     }
 
     if (t.textureTarget != TextureTarget::TwoD) {

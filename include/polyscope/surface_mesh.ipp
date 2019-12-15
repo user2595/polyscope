@@ -201,6 +201,7 @@ void SurfaceMesh::setAllPermutations(const std::array<std::pair<T, size_t>, 5>& 
 // These are generally small wrappers which do some error checks, apply an array adaptor, and hand off to a
 // private non-templated ___Impl version which does the actual adding work.
 
+
 template <class T>
 SurfaceVertexColorQuantity* SurfaceMesh::addVertexColorQuantity(std::string name, const T& colors) {
   validateSize<T>(colors, vertexDataSize, "vertex color quantity " + name);
@@ -366,6 +367,12 @@ SurfaceVertexParameterizationQuantity* SurfaceMesh::addLocalParameterizationQuan
   return addLocalParameterizationQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
 }
 
+
+  template <class T>
+    SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
+    validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
+    return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
+}
 
 template <class T>
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantity(std::string name, const T& data, DataType type) {
