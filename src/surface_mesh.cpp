@@ -1248,20 +1248,20 @@ SurfaceMesh::addLocalParameterizationQuantityImpl(std::string name, const std::v
 }
 
 
-  SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data,
+SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data,
                                                                       DataType type) {
   SurfaceVertexScalarQuantity* q =
-    new SurfaceVertexScalarQuantity(name, applyPermutation(data, vertexPerm), *this, type);
+      new SurfaceVertexScalarQuantity(name, applyPermutation(data, vertexPerm), *this, type);
   addQuantity(q);
   return q;
 }
 
 
-  SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, DataType type) {
-    SurfaceTextureQuantity* q =
-      new SurfaceTextureQuantity(name, *this, applyPermutation(coords, cornerPerm), type);
-    addQuantity(q);
-    return q;
+SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantityImpl(std::string name,
+                                                                  const std::vector<glm::vec2>& coords, DataType type) {
+  SurfaceTextureQuantity* q = new SurfaceTextureQuantity(name, *this, applyPermutation(coords, cornerPerm), type);
+  addQuantity(q);
+  return q;
 }
 
 SurfaceFaceScalarQuantity* SurfaceMesh::addFaceScalarQuantityImpl(std::string name, const std::vector<double>& data,

@@ -20,9 +20,12 @@ namespace polyscope {
 // ================  Base Texture  =====================
 // ==============================================================
 
-SurfaceTextureQuantity::SurfaceTextureQuantity(std::string name,
-                                               SurfaceMesh& mesh_, std::vector<glm::vec2> coords_, DataType type_)
-  : SurfaceMeshQuantity(name, mesh_, true), dataType(type_), coords(coords_) {
+SurfaceTextureQuantity::SurfaceTextureQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec2> coords_,
+                                               DataType type_)
+    : SurfaceMeshQuantity(name, mesh_, true), dataType(type_), coords(std::move(coords_)) {
+  std::string filename = "../../meshes/spot/spot_texture.png";
+  img = stbi_load(filename.c_str(), &imgWidth, &imgHeight, &imgComp, STBI_rgb);
+  if (img == nullptr) throw std::logic_error("Failed to load " + filename);
 }
 
 void SurfaceTextureQuantity::draw() {
@@ -42,32 +45,27 @@ void SurfaceTextureQuantity::draw() {
 void SurfaceTextureQuantity::createProgram() {
   // Create the program to draw this quantity
 
-  program.reset(new gl::GLProgram(&gl::SURFACE_TEXTURE_VERT_SHADER, &gl::SURFACE_TEXTURE_FRAG_SHADER,
-                                  gl::DrawMode::Triangles));
+  program.reset(
+      new gl::GLProgram(&gl::SURFACE_TEXTURE_VERT_SHADER, &gl::SURFACE_TEXTURE_FRAG_SHADER, gl::DrawMode::Triangles));
 
   // Fill color buffers
   fillColorBuffers(*program);
   parent.fillGeometryBuffers(*program);
+  program->setTexture2D("t_image", img, imgWidth, imgHeight, false, false, true);
 
   setMaterialForProgram(*program, "wax");
 }
 
 
 // Update range uniforms
-void SurfaceTextureQuantity::setProgramUniforms(gl::GLProgram& program) {
-
-  program.setTexture2D("t_image", img, imgWidth, imgHeight);
-
-}
+void SurfaceTextureQuantity::setProgramUniforms(gl::GLProgram& program) {}
 
 void SurfaceTextureQuantity::buildCustomUI() {
   ImGui::PushItemWidth(100);
-  static char filename[128] = "../../meshes/spot/spot_texture.png";
-  ImGui::InputText("Filename", filename, IM_ARRAYSIZE(filename));
-  if (ImGui::Button("load")) {
-    setTexture(filename);
-  }
-
+  // ImGui::InputText("Filename", filename, IM_ARRAYSIZE(filename));
+  // if (ImGui::Button("load")) {
+  //   setTexture(filename);
+  // }
 }
 
 
@@ -108,7 +106,7 @@ void SurfaceTextureQuantity::fillColorBuffers(gl::GLProgram& p) {
   }
 
   // Store data in buffers
-  p.setAttribute("a_tcoord", coordVal);
+  p.setAttribute("a_coord", coordVal);
 }
 
 void SurfaceTextureQuantity::buildHalfedgeInfoGUI(size_t heInd) {
