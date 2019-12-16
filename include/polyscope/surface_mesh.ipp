@@ -368,10 +368,10 @@ SurfaceVertexParameterizationQuantity* SurfaceMesh::addLocalParameterizationQuan
 }
 
 
-  template <class T>
-    SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
-    validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
-    return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
+template <class T>
+SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
+  validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
+  return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
 }
 
 template <class T>

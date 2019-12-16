@@ -3,24 +3,24 @@
 
 #include "polyscope/gl/shaders.h"
 
-// clang-format off
-
 namespace polyscope {
 namespace gl {
+
+// clang-format off
 
 static const VertShader SURFACE_TEXTURE_VERT_SHADER =  {
 
     // uniforms
     {
-     {"u_modelView", GLData::Matrix44Float},
-     {"u_projMatrix", GLData::Matrix44Float},
+       {"u_modelView", GLData::Matrix44Float},
+       {"u_projMatrix", GLData::Matrix44Float},
     },
 
     // attributes
     {
         {"a_position", GLData::Vector3Float},
         {"a_normal", GLData::Vector3Float},
-        {"a_tcoord", GLData::Vector2Float},
+        {"a_coord", GLData::Vector2Float},
     },
 
     // source
@@ -29,15 +29,15 @@ static const VertShader SURFACE_TEXTURE_VERT_SHADER =  {
       uniform mat4 u_projMatrix;
       in vec3 a_position;
       in vec3 a_normal;
-      in vec2 a_tcoord;
-      out vec2 tCoord;
+      in vec2 a_coord;
       out vec3 Normal;
+      out vec2 Coord;
 
       void main()
       {
-        Normal = mat3(u_modelView) * a_normal;
-        gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
-        tCoord = a_tcoord;
+          Normal = mat3(u_modelView) * a_normal;
+          Coord = a_coord;
+          gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
       }
     )
 };
@@ -70,7 +70,7 @@ static const FragShader SURFACE_TEXTURE_FRAG_SHADER = {
       uniform sampler2D t_mat_g;
       uniform sampler2D t_mat_b;
       in vec3 Normal;
-      in vec2 tCoord;
+      in vec2 Coord;
       out vec4 outputF;
 
       // Forward declarations of methods from <shaders/common.h>
@@ -78,9 +78,10 @@ static const FragShader SURFACE_TEXTURE_FRAG_SHADER = {
 
       void main()
       {
-        vec3 color = texture(t_image, tCoord).rgb;
+        vec3 color = texture(t_image, Coord).rgb;
         outputF = lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b);
-        outputF = texture(t_image, tCoord * 100.f);
+        /* outputF = texture(t_image, Coord); */
+        /* outputF = vec4(Coord.x, Coord.y, 0.f, 1.f); */
       }
 
     )
