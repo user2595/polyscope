@@ -18,6 +18,7 @@
 #include "polyscope/surface_count_quantity.h"
 #include "polyscope/surface_distance_quantity.h"
 #include "polyscope/surface_graph_quantity.h"
+#include "polyscope/surface_normal_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
 #include "polyscope/surface_scalar_quantity.h"
@@ -52,10 +53,10 @@ class SurfaceFaceVectorQuantity;
 class SurfaceVertexIntrinsicVectorQuantity;
 class SurfaceFaceIntrinsicVectorQuantity;
 class SurfaceOneFormIntrinsicVectorQuantity;
-class SurfaceVertexCountQuantity;
 class SurfaceVertexIsolatedScalarQuantity;
-class SurfaceFaceCountQuantity;
 class SurfaceGraphQuantity;
+class SurfaceVertexNormalQuantity;
+class SurfaceFaceNormalQuantity;
 
 template <> // Specialize the quantity type
 struct QuantityTypeHelper<SurfaceMesh> {
@@ -138,6 +139,10 @@ public:
   // template <class T>
   // void addEdgeSubsetQuantity(std::string name, const T& subset);
 
+  template<class T>
+  SurfaceVertexNormalQuantity* addVertexNormalQuantity(std::string name, const T& normals);
+  template<class T>
+  SurfaceFaceNormalQuantity* addFaceNormalQuantity(std::string name, const T& normals);
 
 
   // = Misc quantities
@@ -373,6 +378,8 @@ private:
   SurfaceVertexIsolatedScalarQuantity* addVertexIsolatedScalarQuantityImpl(std::string name, const std::vector<std::pair<size_t, double>>& values);
   SurfaceFaceCountQuantity* addFaceCountQuantityImpl(std::string name, const std::vector<std::pair<size_t, int>>& values);
 	SurfaceGraphQuantity* addSurfaceGraphQuantityImpl(std::string name, const std::vector<glm::vec3>& nodes, const std::vector<std::array<size_t, 2>>& edges);
+  SurfaceVertexNormalQuantity* addVertexNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
+  SurfaceFaceNormalQuantity* addFaceNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
 
   // === Helper implementations
 

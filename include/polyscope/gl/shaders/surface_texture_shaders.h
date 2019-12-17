@@ -80,8 +80,6 @@ static const FragShader SURFACE_TEXTURE_FRAG_SHADER = {
       {
         vec3 color = texture(t_image, Coord).rgb;
         outputF = lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b);
-        /* outputF = texture(t_image, Coord); */
-        /* outputF = vec4(Coord.x, Coord.y, 0.f, 1.f); */
       }
 
     )

@@ -1319,6 +1319,19 @@ SurfaceMesh::addOneFormIntrinsicVectorQuantityImpl(std::string name, const std::
   return q;
 }
 
+SurfaceVertexNormalQuantity* SurfaceMesh::addVertexNormalQuantityImpl(std::string name,
+                                                                      const std::vector<glm::vec3>& normals) {
+  SurfaceVertexNormalQuantity* q = new SurfaceVertexNormalQuantity(name, applyPermutation(normals, vertexPerm), *this);
+  addQuantity(q);
+  return q;
+}
+
+SurfaceFaceNormalQuantity* SurfaceMesh::addFaceNormalQuantityImpl(std::string name,
+                                                                  const std::vector<glm::vec3>& normals) {
+  SurfaceFaceNormalQuantity* q = new SurfaceFaceNormalQuantity(name, applyPermutation(normals, facePerm), *this);
+  addQuantity(q);
+  return q;
+}
 
 void SurfaceMesh::setVertexTangentBasisXImpl(const std::vector<glm::vec3>& vectors) {
 
