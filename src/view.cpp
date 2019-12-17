@@ -197,8 +197,8 @@ void resetCameraToDefault() {
   // WARNING: Duplicated here and in flyToDefault()
 
   viewMat = glm::mat4x4(1.0);
-  viewMat[0][0] = -1.;
-  viewMat[2][2] = -1.;
+  viewMat[0][0] = 1.;
+  viewMat[2][2] = 1.;
   viewMat = viewMat * glm::translate(glm::mat4x4(1.0), glm::vec3(0.0, 0.0, state::lengthScale));
 
   fov = defaultFov;
@@ -213,8 +213,8 @@ void flyToDefault() {
   // WARNING: Duplicated here and in resetCameraToDefault()
 
   glm::mat4x4 T(1.0);
-  T[0][0] = -1.;
-  T[2][2] = -1.;
+  T[0][0] = 1.;
+  T[2][2] = 1.;
   T = T * glm::translate(glm::mat4x4(1.0), glm::vec3(0.0, 0.0, state::lengthScale));
 
 
@@ -228,10 +228,10 @@ void flyToDefault() {
 glm::mat4 computeHomeView() {
 
   glm::mat4x4 T(1.0);
-  T[0][0] = -1.;
-  T[2][2] = -1.;
+  T[0][0] = 1.;
+  T[2][2] = 1.;
   T = T *
-      glm::translate(glm::mat4x4(1.0), -state::center + glm::vec3(0.0, -0.1 * state::lengthScale, state::lengthScale));
+      glm::translate(glm::mat4x4(1.0), -state::center + glm::vec3(0.0, -0.1 * state::lengthScale, -state::lengthScale));
 
   return T;
 }
