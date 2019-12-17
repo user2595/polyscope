@@ -19,6 +19,7 @@
 #include "polyscope/surface_distance_quantity.h"
 #include "polyscope/surface_earth_quantity.h"
 #include "polyscope/surface_graph_quantity.h"
+#include "polyscope/surface_normal_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
 #include "polyscope/surface_scalar_quantity.h"
@@ -50,6 +51,8 @@ class SurfaceFaceVectorQuantity;
 class SurfaceVertexIntrinsicVectorQuantity;
 class SurfaceFaceIntrinsicVectorQuantity;
 class SurfaceOneFormIntrinsicVectorQuantity;
+class SurfaceVertexNormalQuantity;
+class SurfaceFaceNormalQuantity;
 
 class SurfaceEarthQuantity;
 
@@ -141,6 +144,10 @@ public:
   SurfaceVertexIntrinsicVectorQuantity* addVertexIntrinsicVectorQuantity(std::string name, const T& vectors, int nSym = 1, VectorType vectorType = VectorType::STANDARD);
   template <class T, class O>
   SurfaceOneFormIntrinsicVectorQuantity* addOneFormIntrinsicVectorQuantity(std::string name, const T& data, const O& orientations);
+  template<class T>
+  SurfaceVertexNormalQuantity* addVertexNormalQuantity(std::string name, const T& normals);
+  template<class T>
+  SurfaceFaceNormalQuantity* addFaceNormalQuantity(std::string name, const T& normals);
 
   // = Parameterizations
   template <class T>
@@ -372,6 +379,8 @@ private:
   SurfaceFaceIntrinsicVectorQuantity* addFaceIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);
   SurfaceVertexIntrinsicVectorQuantity* addVertexIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);
   SurfaceOneFormIntrinsicVectorQuantity* addOneFormIntrinsicVectorQuantityImpl(std::string name, const std::vector<double>& data, const std::vector<char>& orientations);
+  SurfaceVertexNormalQuantity* addVertexNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
+  SurfaceFaceNormalQuantity* addFaceNormalQuantityImpl(std::string name, const std::vector<glm::vec3>& normals);
 
   SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions);
   SurfaceEarthQuantity* addSurfaceEarthQuantityImpl(std::string name, const std::vector<glm::vec3>& positions, const std::vector<double>& scaleFactors);

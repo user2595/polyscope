@@ -458,6 +458,17 @@ SurfaceOneFormIntrinsicVectorQuantity* SurfaceMesh::addOneFormIntrinsicVectorQua
                                                standardizeArray<char, O>(orientations));
 }
 
+template <class T>
+SurfaceVertexNormalQuantity* SurfaceMesh::addVertexNormalQuantity(std::string name, const T& normals) {
+  validateSize(normals, vertexDataSize, "vertex normal quantity " + name);
+  return addVertexNormalQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(normals));
+}
+template <class T>
+SurfaceFaceNormalQuantity* SurfaceMesh::addFaceNormalQuantity(std::string name, const T& normals) {
+  validateSize(normals, faceDataSize, "face normal quantity " + name);
+  return addFaceNormalQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(normals));
+}
+
 
 template <class T>
 void SurfaceMesh::setVertexTangentBasisX(const T& vectors) {
