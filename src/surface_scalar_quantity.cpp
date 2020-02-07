@@ -41,7 +41,7 @@ void SurfaceScalarQuantity::writeToFile(std::string filename) {
 void SurfaceScalarQuantity::setProgramUniforms(render::ShaderProgram& program) {
   program.setUniform("u_rangeLow", vizRange.first);
   program.setUniform("u_rangeHigh", vizRange.second);
-  program.setUniform("u_isoline", isoline);
+  // program.setUniform("u_isoline", isoline);
 }
 
 SurfaceScalarQuantity* SurfaceScalarQuantity::resetMapRange() {
