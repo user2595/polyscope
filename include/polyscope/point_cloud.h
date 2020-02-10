@@ -12,6 +12,7 @@
 #include "polyscope/structure.h"
 
 #include "polyscope/point_cloud_color_quantity.h"
+#include "polyscope/point_cloud_frame_quantity.h"
 #include "polyscope/point_cloud_scalar_quantity.h"
 #include "polyscope/point_cloud_vector_quantity.h"
 
@@ -71,6 +72,9 @@ public:
   template <class T>
   PointCloudVectorQuantity* addVectorQuantity2D(std::string name, const T& vectors,
                                                 VectorType vectorType = VectorType::STANDARD);
+  template <class T>
+  PointCloudFrameQuantity* addFrameQuantity(std::string name, const T& vectors, bool cross = false,
+                                            VectorType vectorType = VectorType::STANDARD);
 
   // === Mutate
   template <class V>
@@ -127,6 +131,8 @@ private:
   PointCloudColorQuantity* addColorQuantityImpl(std::string name, const std::vector<glm::vec3>& colors);
   PointCloudVectorQuantity* addVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors,
                                                   VectorType vectorType);
+  PointCloudFrameQuantity* addFrameQuantityImpl(std::string name, const std::vector<std::array<glm::vec3, 3>>& frames,
+                                                bool cross, VectorType vectorType);
 };
 
 
