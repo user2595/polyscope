@@ -27,6 +27,7 @@ class PointCloud;
 class PointCloudColorQuantity;
 class PointCloudScalarQuantity;
 class PointCloudVectorQuantity;
+class PointCloudFrameQuantity;
 
 
 template <> // Specialize the quantity type

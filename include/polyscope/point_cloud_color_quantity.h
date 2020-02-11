@@ -4,7 +4,6 @@
 #include "polyscope/affine_remapper.h"
 #include "polyscope/histogram.h"
 #include "polyscope/point_cloud.h"
-#include "polyscope/point_cloud_quantity.h"
 
 #include <vector>
 

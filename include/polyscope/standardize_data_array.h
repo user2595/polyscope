@@ -785,6 +785,258 @@ std::vector<O> adaptorF_convertArrayOfVectorToStdVector(const T& inputData) {
 
 
 // =================================================
+// ============ array-of-matrix access adapator
+// =================================================
+
+
+// Adaptor to convert an array of a dense matrices to a canonical representation. For instance, std::vector<Eigen::Matrix3d>
+//
+// The output is a std::vector<std::array<O, C>>, where O is an output type also given as a template argument and C is a number of columns given as a template argument. The output type must be
+// subscriptable up to the inner dimension R, for instance one could use O = glm::vec3 or O = std::array<S,R>.
+//
+// The result is a function
+//   template <class O, unsigned int R, unsigned int C, class T>
+//   inline std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVector(const T& inputData);
+// which converts the input to a std::vector<std::array<O, C>>.
+//
+//
+// The following hierarchy of strategies will be attempted, with decreasing precedence:
+//   - any user defined function
+//          std::vector<std::array<O, C>> adaptorF_custom_convertArrayOfMatrixToStdVector(const YOUR_TYPE& inputData);
+//   - dense callable (parenthesis) access (like T[i](j,k))
+//   - double bracket access (like T[i][j][k])
+//   - outer two types bracket accessbile, inner anything convertible to Vector2/3
+//   - outer two types iterable, inner type anything convertible to Vector2/3
+//   - iterable bracket (like for(T val : inputData) { val[0] })
+
+
+// Highest priority: user-specified function
+
+// Note: this dummy function is defined so the non-dependent user function name will always resolve to something; 
+// some compilers will throw an error if the name doesn't resolve.
+inline void adaptorF_custom_convertArrayOfMatrixToStdVector(void* dont_use) {
+  // dummy function
+}
+
+template <
+  class O, unsigned int R, unsigned int C, class T,
+    /* condition: user function exists and returns something that can be bracket-indexed to get an O */
+    typename C1 = typename std::enable_if<std::is_same<
+                                          decltype((typename InnerType<O>::type)(adaptorF_custom_convertArrayOfMatrixToStdVector(*(T*)nullptr))[0][0]),
+                                          typename InnerType<O>::type>::value>::type>
+  std::vector<std::array<O, C>> adaptorF_convertArrayOfVectorToStdVectorImpl(PreferenceT<8>, const T& inputData) {
+
+  // should be std::vector<std::array<SCALAR,D>>
+  auto userArr = adaptorF_custom_convertArrayOfMatrixToStdVector(inputData);
+
+  // This results in an extra copy, which isn't reallllly necessary.
+
+  size_t dataSize = userArr.size();
+  std::vector<std::array<O, C>> dataOut(dataSize);
+  for (size_t i = 0; i < dataSize; i++) {
+    for (size_t j = 0; j < C; j++) {
+      dataOut[i][j] = userArr[i][j];
+    }
+  }
+  return dataOut;
+}
+
+// TODO: store row-wise or column-wise?
+// Next: any dense callable (parenthesis) access operator
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* condition: input can be called with a bracket and two integer arguments to get something that can be cast to the inner type of O */
+    typename C1 = typename std::enable_if<std::is_same<
+   decltype((typename InnerType<O>::type)(*(T*)nullptr)[0]((size_t)0, (size_t)0)),
+                                          typename InnerType<O>::type>::value>::type>
+
+std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<7>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<std::array<O, C>> dataOut(dataSize);
+  for (size_t i = 0; i < dataSize; i++) {
+    for (size_t j = 0; j < C; j++) {
+      for (size_t k = 0; k < R; k++) {
+        dataOut[i][j][k] = inputData[i](k, j);
+      }
+    }
+  }
+  return dataOut;
+}
+
+
+// Next: any dense bracket access operator
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* condition: input can be bracket-indexed twice to get something that can be cast to the inner type of O */
+    typename C1 = typename std::enable_if<std::is_same<
+  decltype((typename InnerType<O>::type)(*(T*)nullptr)[(size_t)0][(size_t)0][(size_t) 0]),
+                                          typename InnerType<O>::type>::value>::type>
+
+  std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<6>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<std::array<O, C>> dataOut(dataSize);
+  for (size_t i = 0; i < dataSize; i++) {
+    for (size_t j = 0; j < C; j++) {
+      for (size_t k = 0; k < R; k++) {
+        dataOut[i][j][k] = inputData[i][j][k];
+      }
+    }
+  }
+  return dataOut;
+}
+
+
+// Next: nested bracketed arrays of anything adaptable to vector3
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* helper type: inner type that results from bracket-indexing T */
+    typename C_INNER = typename std::remove_reference<decltype((*(T*)nullptr)[(size_t)0][(size_t)0])>::type,
+    /* helper type: inner type of output O */
+    typename C_RES = typename InnerType<O>::type,
+    /* helper type: scalar type that results from a vector3 access on C_INNER */
+    typename C_INNER_SCALAR = decltype(adaptorF_accessVector3Value<C_RES, 0>((*(C_INNER*)nullptr))),
+    /* condition: output dimension must be 3 */
+    typename C1 = typename std::enable_if<R == 3>::type,
+    /* condition: the inner_scalar that comes from the vector3 unpack must match the requested inner type */
+    typename C2 = typename std::enable_if<std::is_same<C_INNER_SCALAR, C_RES>::value>::type>
+
+std::vector<O> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<5>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<O> dataOut(dataSize);
+  for (size_t i = 0; i < dataSize; i++) {
+    for (size_t j = 0; j < C; j++) {
+      dataOut[i][j][0] = adaptorF_accessVector3Value<C_RES, 0>(inputData[i][j]);
+      dataOut[i][j][1] = adaptorF_accessVector3Value<C_RES, 1>(inputData[i][j]);
+      dataOut[i][j][2] = adaptorF_accessVector3Value<C_RES, 2>(inputData[i][j]);
+    }
+  }
+  return dataOut;
+}
+
+// Next: nested bracketed arrays of anything adaptable to vector2
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* helper type: inner type that results from bracket-indexing T */
+   typename C_INNER = typename std::remove_reference<decltype((*(T*)nullptr)[(size_t)0][(size_t)0])>::type,
+    /* helper type: inner type of output O */
+    typename C_RES = typename InnerType<O>::type,
+    /* helper type: scalar type that results from a vector2 access on C_INNER */
+    typename C_INNER_SCALAR = decltype(adaptorF_accessVector2Value<C_RES, 0>((*(C_INNER*)nullptr))),
+    /* condition: output dimension must be 2 */
+    typename C1 = typename std::enable_if<R == 2>::type,
+    /* condition: the inner_scalar that comes from the vector2 unpack must match the requested inner type */
+    typename C2 = typename std::enable_if<std::is_same<C_INNER_SCALAR, C_RES>::value>::type>
+
+std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<4>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<O> dataOut(dataSize);
+  for (size_t i = 0; i < dataSize; i++) {
+    for (size_t j = 0; j < C; j++) {
+      dataOut[i][j][0] = adaptorF_accessVector2Value<C_RES, 0>(inputData[i][j]);
+      dataOut[i][j][1] = adaptorF_accessVector2Value<C_RES, 1>(inputData[i][j]);
+    }
+  }
+  return dataOut;
+}
+
+
+// Next: nested iterable arrays of anything adaptable to vector3
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* helper type: inner type that results from dereferencing begin() */
+    typename C_MID = typename std::remove_reference<decltype(*(*(T*)nullptr).begin())>::type,
+    /* helper type: inner type that results from dereferencing end() */
+    typename C_MID_END = typename std::remove_reference<decltype(*(*(T*)nullptr).end())>::type,
+    /* helper type: inner type that results from dereferencing begin() */
+    typename C_INNER = typename std::remove_reference<decltype(*(*(C_MID*)nullptr).begin())>::type,
+    /* helper type: inner type that results from dereferencing end() */
+    typename C_INNER_END = typename std::remove_reference<decltype(*(*(C_MID*)nullptr).end())>::type,
+    /* helper type: inner type of output O */
+    typename C_RES = typename InnerType<O>::type,
+    /* helper type: scalar type that results from a vector3 access on C_INNER */
+    typename C_INNER_SCALAR = decltype(adaptorF_accessVector3Value<C_RES, 0>((*(C_INNER*)nullptr))),
+    /* condition: output dimension must be 3 */
+    typename C1 = typename std::enable_if<R == 3>::type,
+    /* condition: the inner_scalar that comes from the vector3 unpack must match the requested inner type */
+    typename C2 = typename std::enable_if<std::is_same<C_INNER_SCALAR, C_RES>::value>::type,
+    /* condition: the type that comes from begin() must match the one from end() */
+    typename C3 = typename std::enable_if<std::is_same<C_MID, C_MID_END>::value>::type,
+    /* condition: the type that comes from begin() must match the one from end() */
+    typename C4 = typename std::enable_if<std::is_same<C_INNER, C_INNER_END>::value>::type
+    >
+
+std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<3>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<O> dataOut(dataSize);
+  size_t i = 0;
+  for (auto v : inputData) {
+    size_t j = 0;
+    for (auto w : v) {
+      dataOut[i][j][0] = adaptorF_accessVector3Value<C_RES, 0>(w);
+      dataOut[i][j][1] = adaptorF_accessVector3Value<C_RES, 1>(w);
+      dataOut[i][j][2] = adaptorF_accessVector3Value<C_RES, 2>(w);
+      j++;
+    }
+    i++;
+  }
+  return dataOut;
+}
+
+// Next: nested iterable arrays of anything adaptable to vector2
+ template <class O, unsigned int R, unsigned int C, class T,
+    /* helper type: inner type that results from dereferencing begin() */
+    typename C_MID = typename std::remove_reference<decltype(*(*(T*)nullptr).begin())>::type,
+    /* helper type: inner type that results from dereferencing end() */
+    typename C_MID_END = typename std::remove_reference<decltype(*(*(T*)nullptr).end())>::type,
+    /* helper type: inner type that results from dereferencing begin() */
+    typename C_INNER = typename std::remove_reference<decltype(*(*(C_MID*)nullptr).begin())>::type,
+    /* helper type: inner type that results from dereferencing end() */
+    typename C_INNER_END = typename std::remove_reference<decltype(*(*(C_MID*)nullptr).end())>::type,
+    /* helper type: inner type of output O */
+    typename C_RES = typename InnerType<O>::type,
+    /* helper type: scalar type that results from a vector3 access on C_INNER */
+    typename C_INNER_SCALAR = decltype(adaptorF_accessVector3Value<C_RES, 0>((*(C_INNER*)nullptr))),
+    /* condition: output dimension must be 3 */
+    typename C1 = typename std::enable_if<R == 2>::type,
+    /* condition: the inner_scalar that comes from the vector3 unpack must match the requested inner type */
+    typename C2 = typename std::enable_if<std::is_same<C_INNER_SCALAR, C_RES>::value>::type,
+    /* condition: the type that comes from begin() must match the one from end() */
+    typename C3 = typename std::enable_if<std::is_same<C_MID, C_MID_END>::value>::type,
+    /* condition: the type that comes from begin() must match the one from end() */
+    typename C4 = typename std::enable_if<std::is_same<C_INNER, C_INNER_END>::value>::type
+    >
+
+std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<2>, const T& inputData) {
+  size_t dataSize = adaptorF_size(inputData);
+  std::vector<O> dataOut(dataSize);
+  size_t i = 0;
+  for (auto v : inputData) {
+    size_t j = 0;
+    for (auto w : v) {
+      dataOut[i][j][0] = adaptorF_accessVector2Value<C_RES, 0>(w);
+      dataOut[i][j][1] = adaptorF_accessVector2Value<C_RES, 1>(w);
+      j++;
+    }
+    i++;
+  }
+  return dataOut;
+}
+
+
+// Fall-through case: no overload found :(
+// We use this to print a slightly less scary error message.
+#ifndef POLYSCOPE_NO_STANDARDIZE_FALLTHROUGH
+ template <class O, unsigned int R, unsigned int C, class T>
+   std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVectorImpl(PreferenceT<0>, const T& inputData) {
+  static_assert(WillBeFalseT<T>::value,
+                "could not resolve valid adaptor for accessing array-of-matrices-like input data");
+  return std::vector<O>();
+}
+#endif
+
+
+// General version, which will attempt to substitute in to the variants above
+ template <class O, unsigned int R, unsigned int C, class T>
+std::vector<std::array<O, C>> adaptorF_convertArrayOfMatrixToStdVector(const T& inputData) {
+                                                                             return adaptorF_convertArrayOfMatrixToStdVectorImpl<O, R, C, T>(PreferenceT<8>{}, inputData);
+}
+
+// =================================================
 // ============ nested array access adapator
 // =================================================
 
@@ -1033,12 +1285,23 @@ std::vector<O> standardizeVectorArray(const T& inputData) {
   return adaptorF_convertArrayOfVectorToStdVector<O, D, T>(inputData);
 }
 
+// Convert an array of matrix types
+// class O: output inner vector type to put the result in. Will be bracket-indexed.
+//          (Polyscope pretty much always uses glm::vec2/3, std::vector<>, or std::array<>)
+// unsigned int R: number of rows of inner matrix type
+// unsigned int C: number of columns of inner matrix type
+// class T: input array type
+ template <class O, unsigned int R, unsigned int C, class T>
+   std::vector<std::array<O, C>> standardizeMatrixArray(const T& inputData) {
+                                                                             return adaptorF_convertArrayOfMatrixToStdVector<O, R, C, T>(inputData);
+}
+
 // Convert a nested array where the inner types have variable length.
 // class S: innermost scalar type for output
 // class T: input nested array type
 template <class S, class T>
 std::vector<std::vector<S>> standardizeNestedList(const T& inputData) {
-  return adaptorF_convertNestedArrayToStdVector<S>(inputData);
+return adaptorF_convertNestedArrayToStdVector<S>(inputData);
 }
 
 } // namespace polyscope

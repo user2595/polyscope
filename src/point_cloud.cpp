@@ -272,28 +272,31 @@ PointCloud* PointCloud::setPointColor(glm::vec3 newVal) {
   pointColor = newVal;
   polyscope::requestRedraw();
   return this;
+}
 
-  PointCloudFrameQuantity* PointCloud::addFrameQuantityImpl(
-      std::string name, const std::vector<std::array<glm::vec3, 3>>& frames, bool cross, VectorType vectorType) {
-    PointCloudFrameQuantity* q = new PointCloudFrameQuantity(name, frames, *this, cross, vectorType);
-    addQuantity(q);
-    return q;
-  }
-  glm::vec3 PointCloud::getPointColor() { return pointColor.get(); }
+PointCloudFrameQuantity* PointCloud::addFrameQuantityImpl(std::string name,
+                                                          const std::vector<std::array<glm::vec3, 3>>& frames,
+                                                          bool cross, VectorType vectorType) {
+  PointCloudFrameQuantity* q = new PointCloudFrameQuantity(name, frames, *this, cross, vectorType);
+  addQuantity(q);
+  return q;
+}
+glm::vec3 PointCloud::getPointColor() { return pointColor.get(); }
 
-  PointCloud* PointCloud::setMaterial(std::string m) {
-    material = m;
-    geometryChanged(); // (serves the purpose of re-initializing everything, though this is a bit overkill)
-    requestRedraw();
-    return this;
-  }
-  std::string PointCloud::getMaterial() { return material.get(); }
+PointCloud* PointCloud::setMaterial(std::string m) {
+  material = m;
+  geometryChanged(); // (serves the purpose of re-initializing everything, though this is a bit overkill)
+  requestRedraw();
+  return this;
+}
+std::string PointCloud::getMaterial() { return material.get(); }
 
-  PointCloud* PointCloud::setPointRadius(double newVal, bool isRelative) {
-    pointRadius = ScaledValue<float>(newVal, isRelative);
-    polyscope::requestRedraw();
-    return this;
-  }
-  double PointCloud::getPointRadius() { return pointRadius.get().asAbsolute(); }
+PointCloud* PointCloud::setPointRadius(double newVal, bool isRelative) {
+  pointRadius = ScaledValue<float>(newVal, isRelative);
+  polyscope::requestRedraw();
+  return this;
+}
+
+double PointCloud::getPointRadius() { return pointRadius.get().asAbsolute(); }
 
 } // namespace polyscope

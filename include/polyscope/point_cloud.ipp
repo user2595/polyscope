@@ -79,6 +79,7 @@ PointCloudVectorQuantity* PointCloud::addVectorQuantity(std::string name, const 
   validateSize(vectors, nPoints(), "point cloud vector quantity " + name);
   return addVectorQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(vectors), vectorType);
 }
+
 template <class T>
 PointCloudVectorQuantity* PointCloud::addVectorQuantity2D(std::string name, const T& vectors, VectorType vectorType) {
   validateSize(vectors, nPoints(), "point cloud vector quantity " + name);
@@ -98,8 +99,6 @@ PointCloudFrameQuantity* PointCloud::addFrameQuantity(std::string name, const T&
 
   return addFrameQuantityImpl(name, standardizeMatrixArray<glm::vec3, 3, 3, T>(frames), cross, vectorType);
 }
-
-// TODO: general adaptor to take in frames
 
 
 } // namespace polyscope
