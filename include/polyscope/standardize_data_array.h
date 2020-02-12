@@ -1170,7 +1170,7 @@ std::vector<std::vector<S>> adaptorF_convertNestedArrayToStdVectorImpl(Preferenc
 
 
 // Next: recusive unpacking with iterable
-template <class S, class T, 
+template <class S, class T,
     /* helper type: the result of dereferencing begin() on the outer type */
     typename T_INNER = typename std::remove_reference<decltype(*(*(T*)nullptr).begin())>::type,
     /* helper type: the result of dereferencing end() on the outer type */
@@ -1214,6 +1214,175 @@ std::vector<std::vector<S>> adaptorF_convertNestedArrayToStdVector(const T& inpu
 }
 
 // clang-format on
+
+// =================================================
+// ============ deep nested array access adapator
+// =================================================
+
+// Adaptor to convert an array of arrays to a canonical representation. Here, the array can be "ragged"--not all of
+// the inner arrays need to have the same length (though they certainly may). Possible inputs might be a
+// `std::vector<std::vector<size_t>>`, or an `Eigen::MatrixXd`.
+//
+// The output is a std::vector<std::vector<S>>, where S is an output scalar type also given as a template argument.
+//
+// The result is a function
+//   template <class S, class T>
+//   inline std::vector<std::vector<S>> adaptorF_convertNestedArrayToStdVector(const T& inputData);
+//
+//
+// The following hierarchy of strategies will be attempted, with decreasing precedence:
+//   - dense callable (parenthesis) access (like T(i,j)), on a type that supports .rows() and .cols()
+//   - recursive unpacking with bracket
+//   - recursive unpacking with paren
+//   - recursive unpacking with iterable
+
+template <typename S, std::size_t N>
+struct NestedVec {
+  typedef typename std::vector<typename NestedVec<S, N - 1>::type> type;
+};
+template <typename S>
+struct NestedVec<S, 0> {
+  typedef S type;
+};
+
+// Predeclare general version
+template <class S, std::size_t N, class T>
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVector(const T& inputData);
+
+// Note: this dummy function is defined so the non-dependent name adaptorF_custom_convertArrayOfVectorToStdVector will
+// always resolve to something; some compilers will throw an error if the name doesn't resolve.
+inline void adaptorF_custom_convertDeepNestedArrayToStdVector(void* dont_use) {
+  // dummy function
+}
+
+// Highest priority: user-specified function
+template <
+    class S, std::size_t N, class T,
+    /* condition: user function must be return a NestedVec<S, N>::type (i.e. a nested std::vector of S's with
+       depth N) */
+    typename C1 = typename std::enable_if<std::is_same<
+        decltype((typename NestedVec<S, N>::type)(adaptorF_custom_convertDeepNestedArrayToStdVector(*(T*)nullptr))),
+        typename NestedVec<S, N>::type>::value>::type>
+
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<6>, const T& inputData) {
+
+  // should be std::vector<std::vector<USER_SCALAR>>
+  auto userArr = adaptorF_custom_convertDeepNestedArrayToStdVector(inputData);
+
+  return userArr;
+}
+
+// Base case. Must have higher preference than recursive cases
+template <class S, std::size_t N, class T,
+          /* condition: T must be castable to the inner output type S */
+          typename C1 = typename std::enable_if<std::is_same<decltype((S)(*(T*)nullptr)), S>::value>::type,
+          /* condition: in the base case N must be 0 */
+          typename C2 = typename std::enable_if<N == 0>::type>
+S adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<5>, const T& inputData) {
+  return inputData;
+}
+
+// Next: any dense callable (parenthesis) access operator
+template <
+    class S, std::size_t N, class T,
+    /* condition: must have .rows() function which return something like size_t */
+    typename C1 = typename std::enable_if<std::is_same<decltype((size_t)(*(T*)nullptr).rows()), size_t>::value>::type,
+    /* condition: must have .cols() function which return something like size_t */
+    typename C2 = typename std::enable_if<std::is_same<decltype((size_t)(*(T*)nullptr).cols()), size_t>::value>::type,
+    /* condition: to access two dimensions,  N must be at least 2 */
+    typename C3 = typename std::enable_if<N >= 2>::type,
+    /* helper type: the result of bracket access on the outer type */
+    typename T_INNER = typename std::remove_reference<decltype((*(T*)nullptr)((size_t)0, (size_t)0))>::type>
+
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<4>, const T& inputData) {
+
+  size_t outerSize = (size_t)inputData.rows();
+  size_t innerSize = (size_t)inputData.cols();
+
+  typename NestedVec<S, N>::type dataOut(outerSize);
+  for (size_t i = 0; i < outerSize; i++) {
+    dataOut[i].resize(innerSize);
+  }
+
+  for (size_t i = 0; i < outerSize; i++) {
+    for (size_t j = 0; j < innerSize; j++) {
+      dataOut[i][j] = adaptorF_convertDeepNestedArrayToStdVector<S, N - 2, T_INNER>(inputData(i, j));
+    }
+  }
+
+  return dataOut;
+}
+
+// recusive unpacking with parens
+template <class S, std::size_t N, class T,
+          /* helper type: the result of bracket access on the outer type */
+          typename T_INNER = typename std::remove_reference<decltype((*(T*)nullptr)((size_t)0))>::type>
+
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<3>, const T& inputData) {
+  size_t outerSize = adaptorF_size(inputData);
+  typename NestedVec<S, N>::type dataOut(outerSize);
+
+  for (size_t i = 0; i < outerSize; i++) {
+    dataOut[i] = adaptorF_convertDeepNestedArrayToStdVector<S, N - 1, T_INNER>(inputData(i));
+  }
+
+  return dataOut;
+}
+
+// recusive unpacking with bracket
+template <class S, std::size_t N, class T,
+          /* helper type: the result of bracket access on the outer type */
+          typename T_INNER = typename std::remove_reference<decltype((*(T*)nullptr)[0])>::type>
+
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<2>, const T& inputData) {
+  size_t outerSize = adaptorF_size(inputData);
+  typename NestedVec<S, N>::type dataOut(outerSize);
+
+  for (size_t i = 0; i < outerSize; i++) {
+    dataOut[i] = adaptorF_convertDeepNestedArrayToStdVector<S, N - 1, T_INNER>(inputData[i]);
+  }
+
+  return dataOut;
+}
+
+// Next: recusive unpacking with iterable
+template <class S, std::size_t N, class T,
+          /* helper type: the result of dereferencing begin() on the outer type */
+          typename T_INNER = typename std::remove_reference<decltype(*(*(T*)nullptr).begin())>::type,
+          /* helper type: the result of dereferencing end() on the outer type */
+          typename T_INNER_END = typename std::remove_reference<decltype(*(*(T*)nullptr).end())>::type,
+          /* condition: T_INNER must equal T_INNER_END */
+          typename C1 = typename std::enable_if<std::is_same<T_INNER, T_INNER_END>::value>::type>
+
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<1>, const T& inputData) {
+  size_t outerSize = adaptorF_size(inputData);
+  typename NestedVec<S, N>::type dataOut(outerSize);
+
+  size_t i = 0;
+  for (const auto& n : inputData) {
+    dataOut[i] = adaptorF_convertDeepNestedArrayToStdVector<S, N - 1, T_INNER>(n);
+    i++;
+  }
+
+  return dataOut;
+}
+
+// Fall-through case: no overload found :(
+// We use this to print a slightly less scary error message.
+#ifndef POLYSCOPE_NO_STANDARDIZE_FALLTHROUGH
+template <class S, std::size_t N, class T>
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVectorImpl(PreferenceT<0>, const T& inputData) {
+  static_assert(WillBeFalseT<T>::value,
+                "could not resolve valid adaptor for accessing deep-nested-array-like input data");
+  return typename NestedVec<S, N>::type();
+}
+#endif
+
+// General version, which will attempt to substitute in to the variants above
+template <class S, std::size_t N, class T>
+typename NestedVec<S, N>::type adaptorF_convertDeepNestedArrayToStdVector(const T& inputData) {
+  return adaptorF_convertDeepNestedArrayToStdVectorImpl<S, N, T>(PreferenceT<7>{}, inputData);
+}
 
 // =================================================
 // ============ standardize functions
@@ -1291,9 +1460,9 @@ std::vector<O> standardizeVectorArray(const T& inputData) {
 // unsigned int R: number of rows of inner matrix type
 // unsigned int C: number of columns of inner matrix type
 // class T: input array type
- template <class O, unsigned int R, unsigned int C, class T>
-   std::vector<std::array<O, C>> standardizeMatrixArray(const T& inputData) {
-                                                                             return adaptorF_convertArrayOfMatrixToStdVector<O, R, C, T>(inputData);
+template <class O, unsigned int R, unsigned int C, class T>
+std::vector<std::array<O, C>> standardizeMatrixArray(const T& inputData) {
+  return adaptorF_convertArrayOfMatrixToStdVector<O, R, C, T>(inputData);
 }
 
 // Convert a nested array where the inner types have variable length.
@@ -1301,7 +1470,16 @@ std::vector<O> standardizeVectorArray(const T& inputData) {
 // class T: input nested array type
 template <class S, class T>
 std::vector<std::vector<S>> standardizeNestedList(const T& inputData) {
-return adaptorF_convertNestedArrayToStdVector<S>(inputData);
+  return adaptorF_convertNestedArrayToStdVector<S>(inputData);
+}
+
+// Convert a nested array where the inner types have variable length.
+// class S: innermost scalar type for output
+// std::size_t N: number of levels to unpack
+// class T: input nested array type
+template <class S, std::size_t N, class T>
+typename NestedVec<S, N>::type standardizeDeepNestedList(const T& inputData) {
+  return adaptorF_convertDeepNestedArrayToStdVector<S, N, T>(inputData);
 }
 
 } // namespace polyscope
