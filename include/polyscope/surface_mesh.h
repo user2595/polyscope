@@ -21,6 +21,7 @@
 #include "polyscope/surface_normal_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
+#include "polyscope/surface_projective_parameterization_quantity.h"
 #include "polyscope/surface_scalar_quantity.h"
 #include "polyscope/surface_texture_quantity.h"
 #include "polyscope/surface_vector_quantity.h"
@@ -39,6 +40,7 @@ class SurfaceFaceCountQuantity;
 class SurfaceDistanceQuantity;
 class SurfaceGraphQuantity;
 class SurfaceCornerParameterizationQuantity;
+class SurfaceCornerProjectiveParameterizationQuantity;
 class SurfaceTextureQuantity;
 class SurfaceVertexParameterizationQuantity;
 class SurfaceVertexScalarQuantity;
@@ -144,6 +146,8 @@ public:
   template<class T>
   SurfaceFaceNormalQuantity* addFaceNormalQuantity(std::string name, const T& normals);
 
+  template<class T>
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors, ParamCoordsType type = ParamCoordsType::UNIT);
 
   // = Misc quantities
   template <class P, class E>
@@ -369,6 +373,7 @@ private:
   SurfaceCornerParameterizationQuantity* addParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addVertexParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addLocalParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, const std::vector<double>& cornerScaleFactors, ParamCoordsType type);
   SurfaceVertexVectorQuantity* addVertexVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors, VectorType vectorType);
   SurfaceFaceVectorQuantity* addFaceVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors, VectorType vectorType);
   SurfaceFaceIntrinsicVectorQuantity* addFaceIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);
