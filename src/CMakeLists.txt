@@ -60,6 +60,7 @@ SET(SRCS
   surface_count_quantity.cpp
   surface_graph_quantity.cpp
   surface_parameterization_quantity.cpp
+  surface_projective_parameterization_quantity.cpp
   #surface_subset_quantity.cpp
   #surface_selection_quantity.cpp
   #surface_input_curve_quantity.cpp
@@ -119,6 +120,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface_mesh_quantity.h
   ${INCLUDE_ROOT}/surface_parameterization_enums.h
   ${INCLUDE_ROOT}/surface_parameterization_quantity.h
+  ${INCLUDE_ROOT}/surface_projective_parameterization_quantity.h
   ${INCLUDE_ROOT}/surface_scalar_quantity.h
   ${INCLUDE_ROOT}/surface_selection_quantity.h
   ${INCLUDE_ROOT}/surface_subset_quantity.h

@@ -22,6 +22,7 @@
 #include "polyscope/surface_normal_quantity.h"
 #include "polyscope/surface_parameterization_enums.h"
 #include "polyscope/surface_parameterization_quantity.h"
+#include "polyscope/surface_projective_parameterization_quantity.h"
 #include "polyscope/surface_scalar_quantity.h"
 #include "polyscope/surface_texture_quantity.h"
 #include "polyscope/surface_vector_quantity.h"
@@ -40,6 +41,7 @@ class SurfaceFaceCountQuantity;
 class SurfaceDistanceQuantity;
 class SurfaceGraphQuantity;
 class SurfaceCornerParameterizationQuantity;
+class SurfaceCornerProjectiveParameterizationQuantity;
 class SurfaceTextureQuantity;
 class SurfaceVertexParameterizationQuantity;
 class SurfaceVertexScalarQuantity;
@@ -156,6 +158,8 @@ public:
   SurfaceVertexParameterizationQuantity* addVertexParameterizationQuantity(std::string name, const T& coords, ParamCoordsType type = ParamCoordsType::UNIT);
   template <class T>
   SurfaceVertexParameterizationQuantity* addLocalParameterizationQuantity(std::string name, const T& coords, ParamCoordsType type = ParamCoordsType::WORLD);
+  template <class T, class S>
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors, ParamCoordsType type = ParamCoordsType::UNIT);
 
 
   // = Misc quantities
@@ -370,6 +374,7 @@ private:
   SurfaceCornerParameterizationQuantity* addParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addVertexParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addLocalParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, const std::vector<double>& cornerScaleFactors, ParamCoordsType type);
   SurfaceVertexScalarQuantity* addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
   SurfaceFaceScalarQuantity* addFaceScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
   SurfaceEdgeScalarQuantity* addEdgeScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);

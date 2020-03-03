@@ -1247,6 +1247,17 @@ SurfaceMesh::addLocalParameterizationQuantityImpl(std::string name, const std::v
   return q;
 }
 
+SurfaceCornerProjectiveParameterizationQuantity*
+SurfaceMesh::addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords,
+                                                       const std::vector<double>& cornerScaleFactors,
+                                                       ParamCoordsType type) {
+  SurfaceCornerProjectiveParameterizationQuantity* q = new SurfaceCornerProjectiveParameterizationQuantity(
+      name, applyPermutation(coords, cornerPerm), applyPermutation(cornerScaleFactors, cornerPerm), type, *this);
+  addQuantity(q);
+
+  return q;
+}
+
 
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data,
                                                                       DataType type) {
