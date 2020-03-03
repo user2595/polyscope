@@ -367,6 +367,17 @@ SurfaceVertexParameterizationQuantity* SurfaceMesh::addLocalParameterizationQuan
   return addLocalParameterizationQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
 }
 
+// Standard a parameterization, defined at corners
+template <class T, class S>
+SurfaceCornerProjectiveParameterizationQuantity*
+SurfaceMesh::addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors,
+                                                   ParamCoordsType type) {
+  validateSize(coords, cornerDataSize, "parameterization quantity " + name);
+  validateSize(cornerScaleFactors, cornerDataSize, "parameterization quantity " + name);
+  return addProjectiveParameterizationQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords),
+                                                   standardizeArray<double, S>(cornerScaleFactors), type);
+}
+
 
 template <class T>
 SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {

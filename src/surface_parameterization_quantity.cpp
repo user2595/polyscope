@@ -152,7 +152,7 @@ void SurfaceParameterizationQuantity::buildCustomUI() {
 
 
   // Modulo stripey width
-  ImGui::DragFloat("period", &modLen, .001, 0.0001, 1.0, "%.4f", 2.0);
+  ImGui::DragFloat("period", &modLen, .001, 0.0001, 1000.0, "%.4f", 2.0);
 
 
   ImGui::PopItemWidth();
@@ -176,7 +176,7 @@ void SurfaceParameterizationQuantity::buildCustomUI() {
     ImGui::PopItemWidth();
 
     // Set colormap
-    if(buildColormapSelector(cMap)) {
+    if (buildColormapSelector(cMap)) {
       program.reset();
     }
   }
