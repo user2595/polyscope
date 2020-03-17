@@ -20,11 +20,7 @@ static const VertShader PROJECTIVE_PARAM_SURFACE_VERT_SHADER =  {
     {
         {"a_position", GLData::Vector3Float},
         {"a_normal", GLData::Vector3Float},
-        {"a_scale_factor", GLData::Vector3Float},
-        {"a_barycoord", GLData::Vector3Float},
-        {"a_texture_coord0", GLData::Vector2Float},
-        {"a_texture_coord1", GLData::Vector2Float},
-        {"a_texture_coord2", GLData::Vector2Float},
+        {"a_texture_coord", GLData::Vector3Float},
     },
 
     // source
@@ -33,27 +29,15 @@ static const VertShader PROJECTIVE_PARAM_SURFACE_VERT_SHADER =  {
       uniform mat4 u_projMatrix;
       in vec3 a_position;
       in vec3 a_normal;
-      in vec3 a_scale_factor;
-      in vec3 a_barycoord;
-      in vec2 a_texture_coord0;
-      in vec2 a_texture_coord1;
-      in vec2 a_texture_coord2;
+      in vec3 a_texture_coord;
       out vec3 Normal;
-      out vec3 scaleFactor;
-      out vec3 baryCoord;
-      out vec2 tCoord0;
-      out vec2 tCoord1;
-      out vec2 tCoord2;
+      out vec3 tCoord;
 
       void main()
       {
           Normal = mat3(u_modelView) * a_normal;
           gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
-          baryCoord = a_barycoord;
-          scaleFactor = a_scale_factor;
-          tCoord0 = a_texture_coord0;
-          tCoord1 = a_texture_coord1;
-          tCoord2 = a_texture_coord2;
+          tCoord = a_texture_coord;
       }
     )
 };
@@ -63,7 +47,6 @@ static const FragShader PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER = {
 
     // uniforms
     {
-        {"u_projectiveInterpolate", GLData::Int},
         {"u_modLen", GLData::Float},
         {"u_color1", GLData::Vector3Float},
         {"u_color2", GLData::Vector3Float},
@@ -92,14 +75,9 @@ static const FragShader PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER = {
       uniform sampler2D t_mat_r;
       uniform sampler2D t_mat_g;
       uniform sampler2D t_mat_b;
-      uniform int u_projectiveInterpolate;
 
-      in vec3 scaleFactor;
-      in vec3 baryCoord;
       in vec3 Normal;
-      in vec2 tCoord0;
-      in vec2 tCoord1;
-      in vec2 tCoord2;
+      in vec3 tCoord;
       out vec4 outputF;
 
       // Forward declarations of methods from <shaders/common.h>
@@ -107,32 +85,7 @@ static const FragShader PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER = {
 
       void main()
       {
-
-        vec2 pos0 = tCoord0 / baryCoord[0];
-        vec2 pos1 = tCoord1 / baryCoord[1];
-        vec2 pos2 = tCoord2 / baryCoord[2];
-
-        float b0 = baryCoord[0];
-        float b1 = baryCoord[1];
-        float b2 = baryCoord[2];
-
-        float s0 = exp(-scaleFactor[0] / baryCoord[0]) * baryCoord[0];
-        float s1 = exp(-scaleFactor[1] / baryCoord[1]) * baryCoord[1];
-        float s2 = exp(-scaleFactor[2] / baryCoord[2]) * baryCoord[2];
-
-        float sTotal = s0 + s1 + s2;
-        s0 /= sTotal;
-        s1 /= sTotal;
-        s2 /= sTotal;
-
-        vec2 Coord;
-        if (u_projectiveInterpolate > 0) {
-          Coord =
-            s0 * pos0 + s1 * pos1 + s2 * pos2;
-        } else {
-          Coord =
-            b0 * pos0 + b1 * pos1 + b2 * pos2;
-        }
+        vec2 Coord = vec2(tCoord[0], tCoord[1]) / tCoord[2];
 
         // Apply the checkerboard effect
         float mX = mod(Coord.x, 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
@@ -162,7 +115,6 @@ static const FragShader PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER = {
 
     // uniforms
     {
-        {"u_projectiveInterpolate", GLData::Int},
         {"u_modLen", GLData::Float},
         {"u_gridLineColor", GLData::Vector3Float},
         {"u_gridBackgroundColor", GLData::Vector3Float},
@@ -191,14 +143,9 @@ static const FragShader PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER = {
       uniform sampler2D t_mat_r;
       uniform sampler2D t_mat_g;
       uniform sampler2D t_mat_b;
-      uniform int u_projectiveInterpolate;
 
-      in vec3 scaleFactor;
-      in vec3 baryCoord;
       in vec3 Normal;
-      in vec2 tCoord0;
-      in vec2 tCoord1;
-      in vec2 tCoord2;
+      in vec3 tCoord;
       out vec4 outputF;
 
       // Forward declarations of methods from <shaders/common.h>
@@ -206,31 +153,7 @@ static const FragShader PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER = {
 
       void main()
       {
-        vec2 pos0 = tCoord0 / baryCoord[0];
-        vec2 pos1 = tCoord1 / baryCoord[1];
-        vec2 pos2 = tCoord2 / baryCoord[2];
-
-        float b0 = baryCoord[0];
-        float b1 = baryCoord[1];
-        float b2 = baryCoord[2];
-
-        float s0 = exp(-scaleFactor[0] / baryCoord[0]) * baryCoord[0];
-        float s1 = exp(-scaleFactor[1] / baryCoord[1]) * baryCoord[1];
-        float s2 = exp(-scaleFactor[2] / baryCoord[2]) * baryCoord[2];
-
-        float sTotal = s0 + s1 + s2;
-        s0 /= sTotal;
-        s1 /= sTotal;
-        s2 /= sTotal;
-
-        vec2 Coord;
-        if (u_projectiveInterpolate > 0) {
-          Coord =
-            s0 * pos0 + s1 * pos1 + s2 * pos2;
-        } else {
-          Coord =
-            b0 * pos0 + b1 * pos1 + b2 * pos2;
-        }
+        vec2 Coord = vec2(tCoord[0], tCoord[1]) / tCoord[2];
 
         // Apply the checkerboard effect
         float mX = mod(Coord.x, 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
@@ -262,7 +185,6 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER = {
 
     // uniforms
     {
-        {"u_projectiveInterpolate", GLData::Int},
         {"u_modLen", GLData::Float},
         {"u_angle", GLData::Float},
     },
@@ -291,14 +213,9 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER = {
       uniform sampler2D t_mat_g;
       uniform sampler2D t_mat_b;
       uniform sampler1D t_colormap;
-      uniform int u_projectiveInterpolate;
 
-      in vec3 scaleFactor;
-      in vec3 baryCoord;
       in vec3 Normal;
-      in vec2 tCoord0;
-      in vec2 tCoord1;
-      in vec2 tCoord2;
+      in vec3 tCoord;
       out vec4 outputF;
 
       // Forward declarations of methods from <shaders/common.h>
@@ -306,32 +223,7 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER = {
 
       void main()
       {
-        vec2 pos0 = tCoord0 / baryCoord[0];
-        vec2 pos1 = tCoord1 / baryCoord[1];
-        vec2 pos2 = tCoord2 / baryCoord[2];
-
-        float b0 = baryCoord[0];
-        float b1 = baryCoord[1];
-        float b2 = baryCoord[2];
-
-        float s0 = exp(-scaleFactor[0] / baryCoord[0]) * baryCoord[0];
-        float s1 = exp(-scaleFactor[1] / baryCoord[1]) * baryCoord[1];
-        float s2 = exp(-scaleFactor[2] / baryCoord[2]) * baryCoord[2];
-
-        float sTotal = s0 + s1 + s2;
-        s0 /= sTotal;
-        s1 /= sTotal;
-        s2 /= sTotal;
-
-        vec2 Coord;
-        if (u_projectiveInterpolate > 0) {
-          Coord =
-            s0 * pos0 + s1 * pos1 + s2 * pos2;
-        } else {
-          Coord =
-            b0 * pos0 + b1 * pos1 + b2 * pos2;
-        }
-
+        vec2 Coord = vec2(tCoord[0], tCoord[1]) / tCoord[2];
 
         // Get the color at this point
         float pi = 3.14159265359;
@@ -362,7 +254,6 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER = {
 
     // uniforms
     {
-        {"u_projectiveInterpolate", GLData::Int},
         {"u_modLen", GLData::Float},
         {"u_angle", GLData::Float},
     },
@@ -391,14 +282,9 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER = {
       uniform sampler2D t_mat_g;
       uniform sampler2D t_mat_b;
       uniform sampler1D t_colormap;
-      uniform int u_projectiveInterpolate;
 
-      in vec3 scaleFactor;
-      in vec3 baryCoord;
       in vec3 Normal;
-      in vec2 tCoord0;
-      in vec2 tCoord1;
-      in vec2 tCoord2;
+      in vec3 tCoord;
       out vec4 outputF;
 
       // Forward declarations of methods from <shaders/common.h>
@@ -406,32 +292,7 @@ static const FragShader PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER = {
 
       void main()
       {
-        vec2 pos0 = tCoord0 / baryCoord[0];
-        vec2 pos1 = tCoord1 / baryCoord[1];
-        vec2 pos2 = tCoord2 / baryCoord[2];
-
-        float b0 = baryCoord[0];
-        float b1 = baryCoord[1];
-        float b2 = baryCoord[2];
-
-        float s0 = exp(-scaleFactor[0] / baryCoord[0]) * baryCoord[0];
-        float s1 = exp(-scaleFactor[1] / baryCoord[1]) * baryCoord[1];
-        float s2 = exp(-scaleFactor[2] / baryCoord[2]) * baryCoord[2];
-
-        float sTotal = s0 + s1 + s2;
-        s0 /= sTotal;
-        s1 /= sTotal;
-        s2 /= sTotal;
-
-        vec2 Coord;
-        if (u_projectiveInterpolate > 0) {
-          Coord =
-            s0 * pos0 + s1 * pos1 + s2 * pos2;
-        } else {
-          Coord =
-            b0 * pos0 + b1 * pos1 + b2 * pos2;
-        }
-
+        vec2 Coord = vec2(tCoord[0], tCoord[1]) / tCoord[2];
 
         // Rotate coords
         float cosT = cos(u_angle);

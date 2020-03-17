@@ -111,9 +111,6 @@ void SurfaceProjectiveParameterizationQuantity::setProgramUniforms(gl::GLProgram
     program.setUniform("u_angle", localRot);
     break;
   }
-
-
-  program.setUniform("u_projectiveInterpolate", (int)projectiveInterpolate);
 }
 
 namespace {
@@ -187,7 +184,9 @@ void SurfaceProjectiveParameterizationQuantity::buildCustomUI() {
 
   break;
   }
-  ImGui::Checkbox("Projective Interpolate", &projectiveInterpolate);
+  if (ImGui::Checkbox("Projective Interpolate", &projectiveInterpolate)) {
+    fillPositionBuffers(*program);
+  }
 }
 
 
@@ -223,13 +222,8 @@ SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParamete
 std::string SurfaceCornerProjectiveParameterizationQuantity::niceName() { return name + " (corner parameterization)"; }
 
 void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(gl::GLProgram& p) {
-  std::vector<glm::vec2> texCoord0, texCoord1, texCoord2;
-  std::vector<glm::vec3> baryCoords, scaleFactor;
-  texCoord0.reserve(3 * parent.nFacesTriangulation());
-  texCoord1.reserve(3 * parent.nFacesTriangulation());
-  texCoord2.reserve(3 * parent.nFacesTriangulation());
-  baryCoords.reserve(3 * parent.nFacesTriangulation());
-  scaleFactor.reserve(3 * parent.nFacesTriangulation());
+  std::vector<glm::vec3> texCoord;
+  texCoord.reserve(3 * parent.nFacesTriangulation());
 
   glm::vec3 zero{0.f, 0.f, 0.f};
 
@@ -247,39 +241,23 @@ void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(gl::GL
       vRootVal = coords[cornerCounter];
       vBVal = coords[cornerCounter + j];
       vCVal = coords[cornerCounter + j + 1];
-      vRootSF = cornerScaleFactors[cornerCounter];
-      vBSF = cornerScaleFactors[cornerCounter + j];
-      vCSF = cornerScaleFactors[cornerCounter + j + 1];
+      vRootSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter] : 0;
+      vBSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter + j] : 0;
+      vCSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter + j + 1] : 0;
 
-      texCoord0.emplace_back(vRootVal);
-      texCoord0.emplace_back(zero);
-      texCoord0.emplace_back(zero);
+      glm::vec3 projRoot = glm::vec3{vRootVal.x, vRootVal.y, 1} * (float)exp(-vRootSF);
+      glm::vec3 projB = glm::vec3{vBVal.x, vBVal.y, 1} * (float)exp(-vBSF);
+      glm::vec3 projC = glm::vec3{vCVal.x, vCVal.y, 1} * (float)exp(-vCSF);
 
-      texCoord1.emplace_back(zero);
-      texCoord1.emplace_back(vBVal);
-      texCoord1.emplace_back(zero);
-
-      texCoord2.emplace_back(zero);
-      texCoord2.emplace_back(zero);
-      texCoord2.emplace_back(vCVal);
-
-      baryCoords.emplace_back(glm::vec3{1.f, 0.f, 0.f});
-      baryCoords.emplace_back(glm::vec3{0.f, 1.f, 0.f});
-      baryCoords.emplace_back(glm::vec3{0.f, 0.f, 1.f});
-
-      scaleFactor.emplace_back(glm::vec3{vRootSF, 0.f, 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, vBSF, 0.f});
-      scaleFactor.emplace_back(glm::vec3{0.f, 0.f, vCSF});
+      texCoord.emplace_back(projRoot);
+      texCoord.emplace_back(projB);
+      texCoord.emplace_back(projC);
     }
     cornerCounter += D;
   }
 
   // Store data in buffers
-  p.setAttribute("a_barycoord", baryCoords);
-  p.setAttribute("a_scale_factor", scaleFactor);
-  p.setAttribute("a_texture_coord0", texCoord0);
-  p.setAttribute("a_texture_coord1", texCoord1);
-  p.setAttribute("a_texture_coord2", texCoord2);
+  p.setAttribute("a_texture_coord", texCoord);
 }
 
 void SurfaceCornerProjectiveParameterizationQuantity::buildHalfedgeInfoGUI(size_t heInd) {
