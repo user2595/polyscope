@@ -24,18 +24,43 @@ public:
   bool cross;
   const VectorType vectorType;
   std::vector<std::array<glm::vec3, 3>> frames;
-  float lengthMult; // longest frame will be this fraction of lengthScale (if not ambient)
-  float radiusMult; // radius is this fraction of lengthScale
-  std::array<glm::vec3, 3> frameColors;
 
+  // === Option accessors
+
+  //  The frames will be scaled such that all vectors are this long
+  PointCloudFrameQuantity* setFrameLengthScale(double newLength, bool isRelative = true);
+  double getFrameLengthScale();
+
+  // The radius of the frames
+  PointCloudFrameQuantity* setFrameRadius(double val, bool isRelative = true);
+  double getFrameRadius();
+
+  // The color of the frames
+  PointCloudFrameQuantity* setFrameColors(std::array<glm::vec3, 3> color);
+  std::array<glm::vec3, 3> getFrameColors();
+
+  // Material
+  PointCloudFrameQuantity* setMaterial(std::string name);
+  std::string getMaterial();
+
+  void writeToFile(std::string filename = "");
+
+private:
+  // === Visualization options
+  PersistentValue<ScaledValue<float>> frameLengthMult;
+  PersistentValue<ScaledValue<float>> frameRadius;
+  PersistentValue<glm::vec3> frameColorX;
+  PersistentValue<glm::vec3> frameColorY;
+  PersistentValue<glm::vec3> frameColorZ;
+  PersistentValue<std::string> material;
 
   // The map that takes values to [0,1] for drawing
   AffineRemapper<glm::vec3> mapper;
 
-  void writeToFile(std::string filename = "");
-
   void createProgram();
-  std::unique_ptr<gl::GLProgram> program;
+  std::shared_ptr<render::ShaderProgram> programX;
+  std::shared_ptr<render::ShaderProgram> programY;
+  std::shared_ptr<render::ShaderProgram> programZ;
 };
 
 } // namespace polyscope

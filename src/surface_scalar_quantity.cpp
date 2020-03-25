@@ -108,7 +108,8 @@ void SurfaceScalarQuantity::buildCustomUI() {
     } break;
     }
   }
-  ImGui::DragFloat("", &isoline, (dataRangeHigh - dataRangeLow) / 100., dataRangeLow, dataRangeHigh, "Isoline: %.3e");
+  ImGui::DragFloat("", &isoline, (dataRange.second - dataRange.first) / 100., dataRange.first, dataRange.second,
+                   "Isoline: %.3e");
 }
 
 void SurfaceScalarQuantity::geometryChanged() { program.reset(); }
