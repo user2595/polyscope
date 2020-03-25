@@ -2,10 +2,10 @@
 #pragma once
 
 #include "polyscope/affine_remapper.h"
-#include "polyscope/render/color_maps.h"
 #include "polyscope/histogram.h"
-#include "polyscope/surface_mesh.h"
+#include "polyscope/render/color_maps.h"
 #include "polyscope/render/engine.h"
+#include "polyscope/surface_mesh.h"
 
 namespace polyscope {
 
@@ -22,7 +22,7 @@ public:
 
   // === Members
   const DataType dataType;
-  
+
   // === Get/set visualization parameters
 
   // The color map
@@ -40,6 +40,7 @@ protected:
   // Affine data maps and limits
   std::pair<float, float> vizRange;
   std::pair<double, double> dataRange;
+  float isoline;
   Histogram hist;
 
   // UI internals
