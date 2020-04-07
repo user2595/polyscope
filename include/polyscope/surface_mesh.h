@@ -48,7 +48,6 @@ class SurfaceVertexIsolatedScalarQuantity;
 class SurfaceFaceCountQuantity;
 class SurfaceGraphQuantity;
 
-
 template <> // Specialize the quantity type
 struct QuantityTypeHelper<SurfaceMesh> {
   typedef SurfaceMeshQuantity type;
