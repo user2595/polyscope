@@ -29,20 +29,22 @@ void initializeRenderEngine() {
 
 void checkGLError(bool fatal = true) {}
 
+// TODO: add in cubemap stuff
+
 // =============================================================
 // ==================== Texture buffer =========================
 // =============================================================
 
 // create a 1D texture from data
 GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int size1D, unsigned char* data)
-    : TextureBuffer(1, format_, size1D) {
+    : TextureBuffer(TextureTarget::OneD, format_, size1D) {
 
   checkGLError();
 
   setFilterMode(FilterMode::Nearest);
 }
 GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int size1D, float* data)
-    : TextureBuffer(1, format_, size1D) {
+    : TextureBuffer(TextureTarget::TwoD, format_, size1D) {
 
   checkGLError();
 
@@ -51,7 +53,7 @@ GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int size1D, flo
 
 // create a 2D texture from data
 GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_, unsigned char* data)
-    : TextureBuffer(2, format_, sizeX_, sizeY_) {
+    : TextureBuffer(TextureTarget::TwoD, format_, sizeX_, sizeY_) {
 
   checkGLError();
 
@@ -59,7 +61,7 @@ GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, uns
 }
 
 GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_, float* data)
-    : TextureBuffer(2, format_, sizeX_, sizeY_) {
+    : TextureBuffer(TextureTarget::TwoD, format_, sizeX_, sizeY_) {
 
   checkGLError();
 
@@ -67,13 +69,22 @@ GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, uns
 }
 
 GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_, unsigned int nSamples)
-    : TextureBuffer(2, format_, sizeX_, sizeY_) {
+    : TextureBuffer(TextureTarget::TwoD, format_, sizeX_, sizeY_) {
 
   isMultisample = true;
   multisampleCount = nSamples;
 
   // setFilterMode(FilterMode::Nearest); // openGL rejects this?
 }
+
+// create a 2D cubemap texture from data
+GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int size_, std::array<unsigned char*, 6> data)
+    : TextureBuffer(TextureTarget::Cube, format_, size_, size_) {
+  checkGLError();
+
+  setFilterMode(FilterMode::Linear);
+}
+
 
 GLTextureBuffer::~GLTextureBuffer() {}
 
@@ -82,9 +93,9 @@ void GLTextureBuffer::resize(unsigned int newLen) {
   TextureBuffer::resize(newLen);
 
   bind();
-  if (dim == 1) {
+  if (target == TextureTarget::OneD) {
   }
-  if (dim == 2) {
+  if (target == TextureTarget::TwoD) {
     throw std::runtime_error("OpenGL error: called 1D resize on 2D texture");
   }
   checkGLError();
@@ -95,10 +106,10 @@ void GLTextureBuffer::resize(unsigned int newX, unsigned int newY) {
   TextureBuffer::resize(newX, newY);
 
   bind();
-  if (dim == 1) {
+  if (target == TextureTarget::OneD) {
     throw std::runtime_error("OpenGL error: called 2D resize on 1D texture");
   }
-  if (dim == 2) {
+  if (target == TextureTarget::TwoD) {
   }
   checkGLError();
 }
@@ -107,7 +118,7 @@ void GLTextureBuffer::setFilterMode(FilterMode newMode) {
 
   bind();
 
-  if (dim == 1) {
+  if (target == TextureTarget::OneD) {
     switch (newMode) {
     case FilterMode::Nearest:
       break;
@@ -115,7 +126,7 @@ void GLTextureBuffer::setFilterMode(FilterMode newMode) {
       break;
     }
   }
-  if (dim == 2) {
+  if (target == TextureTarget::TwoD) {
 
     switch (newMode) {
     case FilterMode::Nearest:
@@ -130,9 +141,9 @@ void GLTextureBuffer::setFilterMode(FilterMode newMode) {
 void* GLTextureBuffer::getNativeHandle() { return nullptr; }
 
 void GLTextureBuffer::bind() {
-  if (dim == 1) {
+  if (target == TextureTarget::OneD) {
   }
-  if (dim == 2) {
+  if (target == TextureTarget::TwoD) {
   }
   checkGLError();
 }
@@ -340,11 +351,11 @@ void GLShaderProgram::addUniqueUniform(ShaderSpecUniform newUniform) {
 
 void GLShaderProgram::addUniqueTexture(ShaderSpecTexture newTexture) {
   for (GLShaderTexture& t : textures) {
-    if (t.name == newTexture.name && t.dim == newTexture.dim) {
+    if (t.name == newTexture.name && t.target == newTexture.target) {
       return;
     }
   }
-  textures.push_back(GLShaderTexture{newTexture.name, newTexture.dim, 777, false, nullptr, nullptr, 777});
+  textures.push_back(GLShaderTexture{newTexture.name, newTexture.target, 777, false, nullptr, nullptr, 777});
 }
 
 
@@ -830,8 +841,8 @@ void GLShaderProgram::setTexture1D(std::string name, unsigned char* texData, uns
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 1) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.target != TextureTarget::OneD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.target));
     }
 
     // Create a new texture object
@@ -863,8 +874,8 @@ void GLShaderProgram::setTexture2D(std::string name, unsigned char* texData, uns
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 2) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.target != TextureTarget::TwoD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.target));
     }
 
     if (withAlpha) {
@@ -892,14 +903,54 @@ void GLShaderProgram::setTexture2D(std::string name, unsigned char* texData, uns
   throw std::invalid_argument("No texture with name " + name);
 }
 
+void GLShaderProgram::setTextureCube(std::string name, std::array<unsigned char*, 6> texData, unsigned int width,
+                                     bool withAlpha, bool useMipMap, bool repeat) {
+
+  // Find the right texture
+  for (GLShaderTexture& t : textures) {
+    if (t.name != name) continue;
+
+    if (t.isSet) {
+      throw std::invalid_argument("Attempted to set texture twice");
+    }
+
+    if (t.target != TextureTarget::Cube) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.target));
+    }
+
+    if (withAlpha) {
+      t.textureBufferOwned.reset(new GLTextureBuffer(TextureFormat::RGBA8, width, texData));
+    } else {
+      t.textureBufferOwned.reset(new GLTextureBuffer(TextureFormat::RGB8, width, texData));
+    }
+    t.textureBuffer = t.textureBufferOwned.get();
+
+    // Set policies
+    if (repeat) {
+    } else {
+    }
+
+    // Use mip maps
+    if (useMipMap) {
+    } else {
+    }
+
+    t.isSet = true;
+    return;
+  }
+
+  throw std::invalid_argument("No texture with name " + name);
+}
+
+
 void GLShaderProgram::setTextureFromBuffer(std::string name, TextureBuffer* textureBuffer) {
 
   // Find the right texture
   for (GLShaderTexture& t : textures) {
     if (t.name != name) continue;
 
-    if (t.dim != (int)textureBuffer->getDimension()) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.target != textureBuffer->getTextureTarget()) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.target));
     }
 
     t.textureBuffer = dynamic_cast<GLTextureBuffer*>(textureBuffer);
@@ -925,8 +976,8 @@ void GLShaderProgram::setTextureFromColormap(std::string name, const std::string
       throw std::invalid_argument("Attempted to set texture twice");
     }
 
-    if (t.dim != 1) {
-      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.dim));
+    if (t.target != TextureTarget::OneD) {
+      throw std::invalid_argument("Tried to use texture with mismatched dimension " + std::to_string(t.target));
     }
 
     // Fill a buffer with the data
@@ -1050,10 +1101,12 @@ void GLShaderProgram::activateTextures() {
     // Point the uniform at this texture
 
     // Bind to the texture buffer
-    switch (t.dim) {
-    case 1:
+    switch (t.target) {
+    case TextureTarget::OneD:
       break;
-    case 2:
+    case TextureTarget::TwoD:
+      break;
+    case TextureTarget::Cube:
       break;
     }
 
@@ -1282,4 +1335,3 @@ void initializeRenderEngine() {
 } // namespace polyscope
 
 #endif
-

@@ -18,7 +18,8 @@ namespace polyscope {
 class SurfaceProjectiveParameterizationQuantity : public SurfaceMeshQuantity {
 
 public:
-  SurfaceProjectiveParameterizationQuantity(std::string name, ParamCoordsType type_, SurfaceMesh& mesh_);
+  SurfaceProjectiveParameterizationQuantity(std::string name, ParamCoordsType type_, ParamVizStyle style_,
+                                            SurfaceMesh& mesh_);
 
   void draw() override;
   virtual void buildCustomUI() override;
@@ -29,31 +30,48 @@ public:
   // === Members
   ParamCoordsType coordsType;
 
-  // The program which does the drawing
-  std::unique_ptr<gl::GLProgram> program;
-
   // === Viz stuff
   // to keep things simple, has settings for all of the viz styles, even though not all are used at all times
 
+
+  // === Getters and setters for visualization options
+
+  // What visualization scheme to use
   SurfaceProjectiveParameterizationQuantity* setStyle(ParamVizStyle newStyle);
+  ParamVizStyle getStyle();
 
-  float modLen = .05; // for all, period of the checker / stripes
+  // Colors for checkers
+  SurfaceProjectiveParameterizationQuantity* setCheckerColors(std::pair<glm::vec3, glm::vec3> colors);
+  std::pair<glm::vec3, glm::vec3> getCheckerColors();
 
-  glm::vec3 checkColor1, checkColor2; // for checker (two colors to use)
+  // Colors for checkers
+  SurfaceProjectiveParameterizationQuantity* setGridColors(std::pair<glm::vec3, glm::vec3> colors);
+  std::pair<glm::vec3, glm::vec3> getGridColors();
 
-  glm::vec3 gridLineColor, gridBackgroundColor; // for GRID (two colors to use)
+  // The size of checkers / stripes
+  SurfaceProjectiveParameterizationQuantity* setCheckerSize(double newVal);
+  double getCheckerSize();
 
-  gl::ColorMapID cMap = gl::ColorMapID::PHASE; // for LOCAL (color map index)
-  float localRot = 0.;                         // for LOCAL (angular shift, in radians)
+  // Color map for radial visualization
+  SurfaceProjectiveParameterizationQuantity* setColorMap(std::string val);
+  std::string getColorMap();
 
 protected:
-  ParamVizStyle vizStyle = ParamVizStyle::CHECKER;
-  bool projectiveInterpolate = true;
+  // === Visualiztion options
+  PersistentValue<float> checkerSize;
+  PersistentValue<ParamVizStyle> vizStyle;
+  PersistentValue<glm::vec3> checkColor1, checkColor2;           // for checker (two colors to use)
+  PersistentValue<glm::vec3> gridLineColor, gridBackgroundColor; // for GRID (two colors to use)
+
+  PersistentValue<std::string> cMap;
+  float localRot = 0.; // for LOCAL (angular shift, in radians)
+  std::shared_ptr<render::ShaderProgram> program;
+  bool projectiveInterpolate = true; // TODO: make persistent
 
   // Helpers
   void createProgram();
-  void setProgramUniforms(gl::GLProgram& program);
-  virtual void fillPositionBuffers(gl::GLProgram& p) = 0;
+  void setProgramUniforms(render::ShaderProgram& program);
+  virtual void fillPositionBuffers(render::ShaderProgram& p) = 0;
 };
 
 
@@ -78,7 +96,7 @@ public:
   std::vector<double> cornerScaleFactors;
 
 protected:
-  virtual void fillPositionBuffers(gl::GLProgram& p) override;
+  virtual void fillPositionBuffers(render::ShaderProgram& p) override;
 };
 
 } // namespace polyscope

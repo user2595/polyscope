@@ -2,11 +2,9 @@
 #include "polyscope/surface_texture_quantity.h"
 
 #include "polyscope/file_helpers.h"
-#include "polyscope/gl/materials/materials.h"
-#include "polyscope/gl/shaders.h"
-#include "polyscope/gl/shaders/surface_shaders.h"
-#include "polyscope/gl/shaders/surface_texture_shaders.h"
 #include "polyscope/polyscope.h"
+#include "polyscope/render/materials.h"
+#include "polyscope/render/shaders.h"
 
 #include "imgui.h"
 #include "stb_image.h"
@@ -29,7 +27,7 @@ SurfaceTextureQuantity::SurfaceTextureQuantity(std::string name, SurfaceMesh& me
 }
 
 void SurfaceTextureQuantity::draw() {
-  if (!enabled) return;
+  if (!isEnabled()) return;
 
   if (program == nullptr) {
     createProgram();
@@ -45,20 +43,20 @@ void SurfaceTextureQuantity::draw() {
 void SurfaceTextureQuantity::createProgram() {
   // Create the program to draw this quantity
 
-  program.reset(
-      new gl::GLProgram(&gl::SURFACE_TEXTURE_VERT_SHADER, &gl::SURFACE_TEXTURE_FRAG_SHADER, gl::DrawMode::Triangles));
+  program = render::engine->generateShaderProgram(
+      {render::TEXTURE_SURFACE_VERT_SHADER, render::TEXTURE_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
 
   // Fill color buffers
   fillColorBuffers(*program);
   parent.fillGeometryBuffers(*program);
   program->setTexture2D("t_image", img, imgWidth, imgHeight, false, false, true);
 
-  setMaterialForProgram(*program, "wax");
+  render::engine->setMaterial(*program, parent.getMaterial());
 }
 
 
 // Update range uniforms
-void SurfaceTextureQuantity::setProgramUniforms(gl::GLProgram& program) {}
+void SurfaceTextureQuantity::setProgramUniforms(render::ShaderProgram& program) {}
 
 void SurfaceTextureQuantity::buildCustomUI() {
   ImGui::PushItemWidth(100);
@@ -82,7 +80,7 @@ void SurfaceTextureQuantity::geometryChanged() { program.reset(); }
 
 std::string SurfaceTextureQuantity::niceName() { return name + " (corner texture)"; }
 
-void SurfaceTextureQuantity::fillColorBuffers(gl::GLProgram& p) {
+void SurfaceTextureQuantity::fillColorBuffers(render::ShaderProgram& p) {
   std::vector<glm::vec2> coordVal;
   coordVal.reserve(3 * parent.nFacesTriangulation());
 

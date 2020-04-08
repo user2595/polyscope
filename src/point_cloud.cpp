@@ -8,6 +8,7 @@
 #include "polyscope/render/shaders.h"
 
 #include "polyscope/point_cloud_color_quantity.h"
+#include "polyscope/point_cloud_frame_quantity.h"
 #include "polyscope/point_cloud_scalar_quantity.h"
 #include "polyscope/point_cloud_vector_quantity.h"
 

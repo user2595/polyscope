@@ -2,10 +2,9 @@
 #include "polyscope/surface_projective_parameterization_quantity.h"
 
 #include "polyscope/file_helpers.h"
-#include "polyscope/gl/materials/materials.h"
-#include "polyscope/gl/shaders.h"
-#include "polyscope/gl/shaders/projective_parameterization_shaders.h"
 #include "polyscope/polyscope.h"
+#include "polyscope/render/materials.h"
+#include "polyscope/render/shaders.h"
 
 #include "imgui.h"
 
@@ -20,25 +19,18 @@ namespace polyscope {
 
 SurfaceProjectiveParameterizationQuantity::SurfaceProjectiveParameterizationQuantity(std::string name,
                                                                                      ParamCoordsType type_,
+                                                                                     ParamVizStyle style_,
                                                                                      SurfaceMesh& mesh_)
-    : SurfaceMeshQuantity(name, mesh_, true), coordsType(type_) {
+    : SurfaceMeshQuantity(name, mesh_, true), coordsType(type_), checkerSize(uniquePrefix() + "#checkerSize", 0.02),
+      vizStyle(uniquePrefix() + "#vizStyle", style_), checkColor1(uniquePrefix() + "#checkColor1", render::RGB_PINK),
+      checkColor2(uniquePrefix() + "#checkColor2", glm::vec3(.976, .856, .885)),
+      gridLineColor(uniquePrefix() + "#gridLineColor", render::RGB_WHITE),
+      gridBackgroundColor(uniquePrefix() + "#gridBackgroundColor", render::RGB_PINK),
+      cMap(uniquePrefix() + "#cMap", "phase") {}
 
-  // Set default colormap
-  cMap = gl::ColorMapID::PHASE;
-
-  // Set a checker color
-  checkColor1 = gl::RGB_PINK;
-  glm::vec3 checkColor1HSV = RGBtoHSV(checkColor1);
-  checkColor1HSV.y *= 0.15; // very light
-  checkColor2 = HSVtoRGB(checkColor1HSV);
-
-  // set grid color
-  gridLineColor = gl::RGB_WHITE;
-  gridBackgroundColor = gl::RGB_PINK;
-}
 
 void SurfaceProjectiveParameterizationQuantity::draw() {
-  if (!enabled) return;
+  if (!isEnabled()) return;
 
   if (program == nullptr) {
     createProgram();
@@ -54,24 +46,28 @@ void SurfaceProjectiveParameterizationQuantity::draw() {
 void SurfaceProjectiveParameterizationQuantity::createProgram() {
   // Create the program to draw this quantity
 
-  switch (vizStyle) {
+  switch (getStyle()) {
   case ParamVizStyle::CHECKER:
-    program.reset(new gl::GLProgram(&gl::PROJECTIVE_PARAM_SURFACE_VERT_SHADER,
-                                    &gl::PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
+    program = render::engine->generateShaderProgram(
+        {render::PROJECTIVE_PARAM_SURFACE_VERT_SHADER, render::PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER},
+        DrawMode::Triangles);
     break;
   case ParamVizStyle::GRID:
-    program.reset(new gl::GLProgram(&gl::PROJECTIVE_PARAM_SURFACE_VERT_SHADER,
-                                    &gl::PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
+    program = render::engine->generateShaderProgram(
+        {render::PROJECTIVE_PARAM_SURFACE_VERT_SHADER, render::PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER},
+        DrawMode::Triangles);
     break;
   case ParamVizStyle::LOCAL_CHECK:
-    program.reset(new gl::GLProgram(&gl::PROJECTIVE_PARAM_SURFACE_VERT_SHADER,
-                                    &gl::PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
-    program->setTextureFromColormap("t_colormap", gl::getColorMap(cMap));
+    program = render::engine->generateShaderProgram(
+        {render::PROJECTIVE_PARAM_SURFACE_VERT_SHADER, render::PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER},
+        DrawMode::Triangles);
+    program->setTextureFromColormap("t_colormap", cMap.get());
     break;
   case ParamVizStyle::LOCAL_RAD:
-    program.reset(new gl::GLProgram(&gl::PROJECTIVE_PARAM_SURFACE_VERT_SHADER,
-                                    &gl::PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
-    program->setTextureFromColormap("t_colormap", gl::getColorMap(cMap));
+    program = render::engine->generateShaderProgram(
+        {render::PROJECTIVE_PARAM_SURFACE_VERT_SHADER, render::PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER},
+        DrawMode::Triangles);
+    program->setTextureFromColormap("t_colormap", cMap.get());
     break;
   }
 
@@ -79,32 +75,32 @@ void SurfaceProjectiveParameterizationQuantity::createProgram() {
   parent.fillGeometryBuffers(*program);
   fillPositionBuffers(*program);
 
-  setMaterialForProgram(*program, "wax");
+  render::engine->setMaterial(*program, parent.getMaterial());
 }
 
 
 // Update range uniforms
-void SurfaceProjectiveParameterizationQuantity::setProgramUniforms(gl::GLProgram& program) {
+void SurfaceProjectiveParameterizationQuantity::setProgramUniforms(render::ShaderProgram& program) {
 
   // Interpretatin of modulo parameter depends on data type
   switch (coordsType) {
   case ParamCoordsType::UNIT:
-    program.setUniform("u_modLen", modLen);
+    program.setUniform("u_modLen", getCheckerSize());
     break;
   case ParamCoordsType::WORLD:
-    program.setUniform("u_modLen", modLen * state::lengthScale);
+    program.setUniform("u_modLen", getCheckerSize() * state::lengthScale);
     break;
   }
 
   // Set other uniforms needed
-  switch (vizStyle) {
+  switch (getStyle()) {
   case ParamVizStyle::CHECKER:
-    program.setUniform("u_color1", checkColor1);
-    program.setUniform("u_color2", checkColor2);
+    program.setUniform("u_color1", getCheckerColors().first);
+    program.setUniform("u_color2", getCheckerColors().second);
     break;
   case ParamVizStyle::GRID:
-    program.setUniform("u_gridLineColor", gridLineColor);
-    program.setUniform("u_gridBackgroundColor", gridBackgroundColor);
+    program.setUniform("u_gridLineColor", getGridColors().first);
+    program.setUniform("u_gridBackgroundColor", getGridColors().second);
     break;
   case ParamVizStyle::LOCAL_CHECK:
   case ParamVizStyle::LOCAL_RAD:
@@ -141,10 +137,10 @@ void SurfaceProjectiveParameterizationQuantity::buildCustomUI() {
   ImGui::SameLine(); // put it next to enabled
 
   // Choose viz style
-  if (ImGui::BeginCombo("style", styleName(vizStyle).c_str())) {
+  if (ImGui::BeginCombo("style", styleName(getStyle()).c_str())) {
     for (ParamVizStyle s :
          {ParamVizStyle::CHECKER, ParamVizStyle::GRID, ParamVizStyle::LOCAL_CHECK, ParamVizStyle::LOCAL_RAD}) {
-      if (ImGui::Selectable(styleName(s).c_str(), s == vizStyle)) {
+      if (ImGui::Selectable(styleName(s).c_str(), s == getStyle())) {
         setStyle(s);
       }
     }
@@ -153,21 +149,27 @@ void SurfaceProjectiveParameterizationQuantity::buildCustomUI() {
 
 
   // Modulo stripey width
-  ImGui::DragFloat("period", &modLen, .001, 0.0001, 1000.0, "%.4f", 2.0);
+  if (ImGui::DragFloat("period", &checkerSize.get(), .001, 0.0001, 1.0, "%.4f", 2.0)) {
+    setCheckerSize(getCheckerSize());
+  }
 
 
   ImGui::PopItemWidth();
 
-  switch (vizStyle) {
+  switch (getStyle()) {
   case ParamVizStyle::CHECKER:
-    ImGui::ColorEdit3("##colors2", (float*)&checkColor1, ImGuiColorEditFlags_NoInputs);
+    if (ImGui::ColorEdit3("##colors2", &checkColor1.get()[0], ImGuiColorEditFlags_NoInputs))
+      setCheckerColors(getCheckerColors());
     ImGui::SameLine();
-    ImGui::ColorEdit3("colors", (float*)&checkColor2, ImGuiColorEditFlags_NoInputs);
+    if (ImGui::ColorEdit3("colors", &checkColor2.get()[0], ImGuiColorEditFlags_NoInputs))
+      setCheckerColors(getCheckerColors());
     break;
   case ParamVizStyle::GRID:
-    ImGui::ColorEdit3("base", (float*)&gridBackgroundColor, ImGuiColorEditFlags_NoInputs);
+    if (ImGui::ColorEdit3("base", &gridBackgroundColor.get()[0], ImGuiColorEditFlags_NoInputs))
+      setGridColors(getGridColors());
     ImGui::SameLine();
-    ImGui::ColorEdit3("line", (float*)&gridLineColor, ImGuiColorEditFlags_NoInputs);
+    if (ImGui::ColorEdit3("line", &gridLineColor.get()[0], ImGuiColorEditFlags_NoInputs))
+      setGridColors(getGridColors());
     break;
   case ParamVizStyle::LOCAL_CHECK:
   case ParamVizStyle::LOCAL_RAD: {
@@ -177,13 +179,14 @@ void SurfaceProjectiveParameterizationQuantity::buildCustomUI() {
     ImGui::PopItemWidth();
 
     // Set colormap
-    if (buildColormapSelector(cMap)) {
-      program.reset();
+    if (render::buildColormapSelector(cMap.get())) {
+      setColorMap(getColorMap());
     }
   }
 
   break;
   }
+
   if (ImGui::Checkbox("Projective Interpolate", &projectiveInterpolate)) {
     fillPositionBuffers(*program);
   }
@@ -197,16 +200,59 @@ SurfaceProjectiveParameterizationQuantity* SurfaceProjectiveParameterizationQuan
   return this;
 }
 
+ParamVizStyle SurfaceProjectiveParameterizationQuantity::getStyle() { return vizStyle.get(); }
+
+SurfaceProjectiveParameterizationQuantity*
+SurfaceProjectiveParameterizationQuantity::setCheckerColors(std::pair<glm::vec3, glm::vec3> colors) {
+  checkColor1 = colors.first;
+  checkColor2 = colors.second;
+  requestRedraw();
+  return this;
+}
+
+std::pair<glm::vec3, glm::vec3> SurfaceProjectiveParameterizationQuantity::getCheckerColors() {
+  return std::make_pair(checkColor1.get(), checkColor2.get());
+}
+
+SurfaceProjectiveParameterizationQuantity*
+SurfaceProjectiveParameterizationQuantity::setGridColors(std::pair<glm::vec3, glm::vec3> colors) {
+  gridLineColor = colors.first;
+  gridBackgroundColor = colors.second;
+  requestRedraw();
+  return this;
+}
+
+std::pair<glm::vec3, glm::vec3> SurfaceProjectiveParameterizationQuantity::getGridColors() {
+  return std::make_pair(gridLineColor.get(), gridBackgroundColor.get());
+}
+
+SurfaceProjectiveParameterizationQuantity* SurfaceProjectiveParameterizationQuantity::setCheckerSize(double newVal) {
+  checkerSize = newVal;
+  requestRedraw();
+  return this;
+}
+
+double SurfaceProjectiveParameterizationQuantity::getCheckerSize() { return checkerSize.get(); }
+
+SurfaceProjectiveParameterizationQuantity* SurfaceProjectiveParameterizationQuantity::setColorMap(std::string name) {
+  cMap = name;
+  program.reset();
+  requestRedraw();
+  return this;
+}
+std::string SurfaceProjectiveParameterizationQuantity::getColorMap() { return cMap.get(); }
+
 void SurfaceProjectiveParameterizationQuantity::geometryChanged() { program.reset(); }
 
 // ==============================================================
 // ===============  Corner ProjectiveParameterization  ====================
 // ==============================================================
 
-
+// TODO: move vizstyle out of here
 SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParameterizationQuantity(
     std::string name, std::vector<glm::vec2> coords_, ParamCoordsType type_, SurfaceMesh& mesh_)
-    : SurfaceProjectiveParameterizationQuantity(name, type_, mesh_), coords(std::move(coords_)) {
+    : SurfaceProjectiveParameterizationQuantity(name, type_, ParamVizStyle::CHECKER, mesh_),
+      coords(std::move(coords_)) {
   cornerScaleFactors.reserve(coords.size());
   for (size_t iC = 0; iC < coords.size(); ++iC) {
     cornerScaleFactors.push_back(0);
@@ -216,12 +262,12 @@ SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParamete
 SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParameterizationQuantity(
     std::string name, std::vector<glm::vec2> coords_, std::vector<double> cornerScaleFactors_, ParamCoordsType type_,
     SurfaceMesh& mesh_)
-    : SurfaceProjectiveParameterizationQuantity(name, type_, mesh_), coords(std::move(coords_)),
+    : SurfaceProjectiveParameterizationQuantity(name, type_, ParamVizStyle::CHECKER, mesh_), coords(std::move(coords_)),
       cornerScaleFactors(std::move(cornerScaleFactors_)) {}
 
 std::string SurfaceCornerProjectiveParameterizationQuantity::niceName() { return name + " (corner parameterization)"; }
 
-void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(gl::GLProgram& p) {
+void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(render::ShaderProgram& p) {
   std::vector<glm::vec3> texCoord;
   texCoord.reserve(3 * parent.nFacesTriangulation());
 
@@ -257,7 +303,7 @@ void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(gl::GL
   }
 
   // Store data in buffers
-  p.setAttribute("a_texture_coord", texCoord);
+  p.setAttribute("a_coord", texCoord);
 }
 
 void SurfaceCornerProjectiveParameterizationQuantity::buildHalfedgeInfoGUI(size_t heInd) {

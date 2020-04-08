@@ -2,10 +2,9 @@
 #include "polyscope/surface_earth_quantity.h"
 
 #include "polyscope/file_helpers.h"
-#include "polyscope/gl/materials/materials.h"
-#include "polyscope/gl/shaders.h"
-#include "polyscope/gl/shaders/earth_shaders.h"
 #include "polyscope/polyscope.h"
+#include "polyscope/render/materials.h"
+#include "polyscope/render/shaders.h"
 
 #include "imgui.h"
 #include "stb_image.h"
@@ -40,7 +39,7 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
 }
 
 void SurfaceEarthQuantity::draw() {
-  if (!enabled) return;
+  if (!isEnabled()) return;
 
   if (program == nullptr) {
     createProgram();
@@ -54,7 +53,7 @@ void SurfaceEarthQuantity::draw() {
 }
 
 // Update range uniforms
-void SurfaceEarthQuantity::setProgramTextures(gl::GLProgram& program) {
+void SurfaceEarthQuantity::setProgramTextures(render::ShaderProgram& program) {
 
   // Load the texture
   int w, h, comp;
@@ -82,18 +81,19 @@ void SurfaceEarthQuantity::geometryChanged() { program.reset(); }
 
 void SurfaceEarthQuantity::createProgram() {
   // Create the program to draw this quantity
-  program.reset(new gl::GLProgram(&gl::EARTH_DRAW_VERT_SHADER, &gl::EARTH_DRAW_FRAG_SHADER, gl::DrawMode::Triangles));
+  program = render::engine->generateShaderProgram(
+      {render::EARTH_SURFACE_VERT_SHADER, render::EARTH_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
 
   // Fill color buffers
   parent.fillGeometryBuffers(*program);
   fillPositionBuffers(*program);
   setProgramTextures(*program);
 
-  setMaterialForProgram(*program, "wax");
+  render::engine->setMaterial(*program, parent.getMaterial());
 }
 
 
-void SurfaceEarthQuantity::fillPositionBuffers(gl::GLProgram& p) {
+void SurfaceEarthQuantity::fillPositionBuffers(render::ShaderProgram& p) {
   std::vector<glm::vec3> texCoord0, texCoord1, texCoord2, baryCoords, scaleFactor;
   texCoord0.reserve(3 * parent.nFacesTriangulation());
   texCoord1.reserve(3 * parent.nFacesTriangulation());

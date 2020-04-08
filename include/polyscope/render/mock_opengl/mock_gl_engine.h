@@ -22,6 +22,9 @@ public:
   GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, float* data);
   GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, unsigned int nSamples);
 
+  // create a 2D cubemap texture from data
+  GLTextureBuffer(TextureFormat format, unsigned int size_, std::array<unsigned char*, 6> data);
+
   ~GLTextureBuffer() override;
 
 
@@ -135,6 +138,8 @@ public:
   void setTexture1D(std::string name, unsigned char* texData, unsigned int length) override;
   void setTexture2D(std::string name, unsigned char* texData, unsigned int width, unsigned int height,
                     bool withAlpha = true, bool useMipMap = false, bool repeat = false) override;
+  void setTextureCube(std::string name, std::array<unsigned char*, 6> texData, unsigned int width, bool withAlpha,
+                      bool useMipMap, bool repeat) override;
   void setTextureFromColormap(std::string name, const std::string& colorMap, bool allowUpdate = false) override;
   void setTextureFromBuffer(std::string name, TextureBuffer* textureBuffer) override;
 
@@ -162,7 +167,7 @@ protected:
 
   struct GLShaderTexture {
     std::string name;
-    int dim;
+    TextureTarget target;
     unsigned int index;
     bool isSet;
     GLTextureBuffer* textureBuffer;
@@ -260,6 +265,6 @@ public:
 protected:
 };
 
-}
+} // namespace backend_openGL_mock
 } // namespace render
 } // namespace polyscope

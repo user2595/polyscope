@@ -86,7 +86,7 @@ const ShaderStageSpecification PLAIN_TEXTURE_DRAW_FRAG_SHADER = {
     { },
     
     // textures 
-    { {"t_image", 2} },
+    { {"t_image", TextureTarget::TwoD} },
     
     // source 
     POLYSCOPE_GLSL(330 core,
@@ -115,7 +115,7 @@ const ShaderStageSpecification DOT3_TEXTURE_DRAW_FRAG_SHADER = {
     { },
     
     // textures 
-    { {"t_image", 2} },
+    { {"t_image", TextureTarget::TwoD} },
     
     // source 
     POLYSCOPE_GLSL(330 core,
@@ -147,7 +147,7 @@ const ShaderStageSpecification MAP3_TEXTURE_DRAW_FRAG_SHADER = {
     { },
     
     // textures 
-    { {"t_image", 2} },
+    { {"t_image", TextureTarget::TwoD} },
     
     // source 
     POLYSCOPE_GLSL(330 core,
@@ -178,7 +178,7 @@ const ShaderStageSpecification SPHEREBG_DRAW_FRAG_SHADER = {
     { },
     
     // textures 
-    { {"t_image", 2} },
+    { {"t_image", TextureTarget::TwoD} },
     
     // source 
     POLYSCOPE_GLSL(330 core,

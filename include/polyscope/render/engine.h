@@ -38,13 +38,33 @@ enum class TextureFormat { RGB8 = 0, RGBA8, RG16F, RGB16F, RGBA16F, RGBA32F, RGB
 enum class RenderBufferType { Color, ColorAlpha, Depth, Float4 };
 enum class DepthMode { Less, LEqual, LEqualReadOnly, Disable };
 enum class BlendMode { Over, OverNoWrite, Zero, Disable }; // TODO what to call these...
+enum class TextureTarget { Cube, OneD = 1, TwoD = 2 };
+} // namespace polyscope
 
+
+// TODO: move this somewhere better
+namespace std {
+inline string to_string(polyscope::TextureTarget t) {
+  switch (t) {
+  case polyscope::TextureTarget::Cube:
+    return "CubeMap";
+  case polyscope::TextureTarget::OneD:
+    return "1D";
+  case polyscope::TextureTarget::TwoD:
+    return "2D";
+  default:
+    return "unrecognized texture target";
+  }
+}
+} // namespace std
+
+namespace polyscope {
 namespace render {
 
 class TextureBuffer {
 public:
   // abstract class: use the factory methods from the Engine class
-  TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_ = -1);
+  TextureBuffer(TextureTarget target_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_ = -1);
 
   virtual ~TextureBuffer();
 
@@ -55,7 +75,7 @@ public:
 
   unsigned int getSizeX() const { return sizeX; }
   unsigned int getSizeY() const { return sizeY; }
-  int getDimension() const { return dim; }
+  TextureTarget getTextureTarget() const { return target; }
 
   virtual void setFilterMode(FilterMode newMode);
 
@@ -71,7 +91,7 @@ public:
   virtual void* getNativeHandle() = 0; // used to interop with external things, e.g. ImGui
 
 protected:
-  int dim;
+  TextureTarget target;
   TextureFormat format;
   unsigned int sizeX, sizeY;
 };
@@ -172,7 +192,7 @@ struct ShaderSpecAttribute {
 };
 struct ShaderSpecTexture {
   const std::string name;
-  const int dim;
+  const TextureTarget target;
 };
 
 
@@ -234,6 +254,8 @@ public:
   virtual void setTexture1D(std::string name, unsigned char* texData, unsigned int length) = 0;
   virtual void setTexture2D(std::string name, unsigned char* texData, unsigned int width, unsigned int height,
                             bool withAlpha = true, bool useMipMap = false, bool repeat = false) = 0;
+  virtual void setTextureCube(std::string name, std::array<unsigned char*, 6> texData, unsigned int width,
+                              bool withAlpha, bool useMipMap, bool repeat) = 0;
   virtual void setTextureFromColormap(std::string name, const std::string& colorMap, bool allowUpdate = false) = 0;
   virtual void setTextureFromBuffer(std::string name, TextureBuffer* textureBuffer) = 0;
 
@@ -302,10 +324,10 @@ public:
   virtual void setBlendMode(BlendMode newMode = BlendMode::Over) = 0;
   virtual void setColorMask(std::array<bool, 4> mask = {true, true, true, true}) = 0;
 
-	void setCurrentViewport(glm::vec4 viewport); 
-	glm::vec4 getCurrentViewport(); 
-	void setCurrentPixelScaling(float scale);
-	float getCurrentPixelScaling();
+  void setCurrentViewport(glm::vec4 viewport);
+  glm::vec4 getCurrentViewport();
+  void setCurrentPixelScaling(float scale);
+  float getCurrentPixelScaling();
 
   // Helpers
   void allocateGlobalBuffersAndPrograms(); // called once during startup
@@ -338,7 +360,7 @@ public:
   ImFontAtlas* getImGuiGlobalFontAtlas();
   virtual void ImGuiNewFrame() = 0;
   virtual void ImGuiRender() = 0;
-	virtual void showTextureInImGuiWindow(std::string windowName, TextureBuffer* buffer);
+  virtual void showTextureInImGuiWindow(std::string windowName, TextureBuffer* buffer);
 
 
   // === Factory methods
@@ -391,14 +413,14 @@ public:
   float exposure = 1.0;
   float whiteLevel = 0.75;
   float gamma = 2.2;
-  
-  
+
+
   // == Cached data
 
   // Materials
   std::vector<std::unique_ptr<Material>> materials;
   Material& getMaterial(const std::string& name);
-  void loadBlendableMaterial(std::string matName, std::array<std::string,4> filenames);
+  void loadBlendableMaterial(std::string matName, std::array<std::string, 4> filenames);
   void loadBlendableMaterial(std::string matName, std::string filenameBase, std::string filenameExt);
   void loadStaticMaterial(std::string matName, std::string filename);
 
@@ -410,11 +432,11 @@ public:
 protected:
   // TODO Manage a cache of compiled shaders?
 
-	// Render state
+  // Render state
   int ssaaFactor = 1;
   int msaaFactor = 4;
-	glm::vec4 currViewport;	
-	float currPixelScale;	
+  glm::vec4 currViewport;
+  float currPixelScale;
 
   // Helpers
   std::vector<glm::vec3> screenTrianglesCoords(); // two triangles which cover the screen
@@ -427,7 +449,6 @@ protected:
 
   // Internal windowing and engine details
   ImFontAtlas* globalFontAtlas = nullptr;
-
 };
 
 
@@ -452,7 +473,7 @@ inline void ShaderProgram::setAttribute(std::string name, const std::vector<std:
 
 // Call once to initialize
 // (see render/initialize_backend.cpp)
-void initializeRenderEngine(std::string backend="");
+void initializeRenderEngine(std::string backend = "");
 
 // The global render engine
 // Gets initialized by initializeRenderEngine() in polyscope::init();

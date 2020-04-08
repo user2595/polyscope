@@ -26,7 +26,7 @@ const ShaderStageSpecification MAP_LIGHT_FRAG_SHADER = {
     
     // textures 
     { 
-      {"t_image", 2},
+        {"t_image", TextureTarget::TwoD},
     },
     
     // source 

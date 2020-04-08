@@ -2,10 +2,9 @@
 #include "polyscope/surface_normal_quantity.h"
 
 #include "polyscope/file_helpers.h"
-#include "polyscope/gl/materials/materials.h"
-#include "polyscope/gl/shaders.h"
-#include "polyscope/gl/shaders/surface_shaders.h"
 #include "polyscope/polyscope.h"
+#include "polyscope/render/materials.h"
+#include "polyscope/render/shaders.h"
 
 #include "imgui.h"
 
@@ -18,7 +17,7 @@ SurfaceNormalQuantity::SurfaceNormalQuantity(std::string name, SurfaceMesh& mesh
     : SurfaceMeshQuantity(name, mesh_, true), definedOn(definedOn_) {}
 
 void SurfaceNormalQuantity::draw() {
-  if (!enabled) return;
+  if (!isEnabled()) return;
 
   if (program == nullptr) {
     createProgram();
@@ -28,7 +27,6 @@ void SurfaceNormalQuantity::draw() {
   parent.setTransformUniforms(*program);
   setProgramUniforms(*program);
 
-  program->setUniform("u_basecolor", parent.surfaceColor);
 
   program->draw();
 }
@@ -39,7 +37,7 @@ void SurfaceNormalQuantity::writeToFile(std::string filename) {
 
 
 // Update range uniforms
-void SurfaceNormalQuantity::setProgramUniforms(gl::GLProgram& program) {}
+void SurfaceNormalQuantity::setProgramUniforms(render::ShaderProgram& program) {}
 
 void SurfaceNormalQuantity::buildCustomUI() {
   ImGui::SameLine();
@@ -72,16 +70,16 @@ SurfaceVertexNormalQuantity::SurfaceVertexNormalQuantity(std::string name, std::
 
 void SurfaceVertexNormalQuantity::createProgram() {
   // Create the program to draw this quantity
-  program.reset(
-      new gl::GLProgram(&gl::PLAIN_SURFACE_VERT_SHADER, &gl::PLAIN_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
+  program = render::engine->generateShaderProgram(
+      {render::PLAIN_SURFACE_VERT_SHADER, render::PLAIN_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
 
   // Fill geometry buffers
-  fillGeometryBuffers(*program);
+  parent.fillGeometryBuffers(*program);
 
-  setMaterialForProgram(*program, "wax");
+  render::engine->setMaterial(*program, parent.getMaterial());
 }
 
-void SurfaceVertexNormalQuantity::fillGeometryBuffers(gl::GLProgram& p) {
+void SurfaceVertexNormalQuantity::fillGeometryBuffers(render::ShaderProgram& p) {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec3> bcoord;
@@ -153,16 +151,16 @@ SurfaceFaceNormalQuantity::SurfaceFaceNormalQuantity(std::string name, std::vect
 
 void SurfaceFaceNormalQuantity::createProgram() {
   // Create the program to draw this quantity
-  program.reset(
-      new gl::GLProgram(&gl::PLAIN_SURFACE_VERT_SHADER, &gl::PLAIN_SURFACE_FRAG_SHADER, gl::DrawMode::Triangles));
+  program = render::engine->generateShaderProgram(
+      {render::PLAIN_SURFACE_VERT_SHADER, render::PLAIN_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
 
   // Fill color buffers
   fillGeometryBuffers(*program);
 
-  setMaterialForProgram(*program, "wax");
+  render::engine->setMaterial(*program, parent.getMaterial());
 }
 
-void SurfaceFaceNormalQuantity::fillGeometryBuffers(gl::GLProgram& p) {
+void SurfaceFaceNormalQuantity::fillGeometryBuffers(render::ShaderProgram& p) {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec3> bcoord;

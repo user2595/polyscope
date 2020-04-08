@@ -733,10 +733,10 @@ const ShaderStageSpecification CYLINDER_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
  
     // source
@@ -803,11 +803,11 @@ const ShaderStageSpecification CYLINDER_VALUE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
  
     // source
@@ -881,10 +881,10 @@ const ShaderStageSpecification CYLINDER_COLOR_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
  
     // source
@@ -952,11 +952,11 @@ const ShaderStageSpecification CYLINDER_BLEND_VALUE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
  
     // source
@@ -1036,10 +1036,10 @@ const ShaderStageSpecification CYLINDER_BLEND_COLOR_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
  
     // source
@@ -1167,7 +1167,6 @@ const ShaderStageSpecification CYLINDER_PICK_FRAG_SHADER = {
         }
     )
 };
-
 
 
 // clang-format on

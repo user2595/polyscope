@@ -135,10 +135,10 @@ const ShaderStageSpecification VECTOR_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
  
     // source

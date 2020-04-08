@@ -1,7 +1,6 @@
 // Copyright 2017-2019, Nicholas Sharp and the Polyscope contributors. http://polyscope.run.
 #pragma once
 
-#include "polyscope/gl/color_maps.h"
 #include "polyscope/surface_mesh.h"
 
 namespace polyscope {
@@ -19,7 +18,7 @@ public:
   const DataType dataType;
 
 
-  void fillColorBuffers(gl::GLProgram& p);
+  void fillColorBuffers(render::ShaderProgram& p);
   void buildHalfedgeInfoGUI(size_t heInd) override;
   SurfaceTextureQuantity* setTexture(std::string filename);
 
@@ -28,14 +27,14 @@ public:
 
 protected:
   const std::string definedOn;
-  std::unique_ptr<gl::GLProgram> program;
+  std::shared_ptr<render::ShaderProgram> program;
   unsigned char* img;
   bool imageLoaded = false;
   int imgWidth, imgHeight, imgComp;
 
   // Helpers
   virtual void createProgram();
-  void setProgramUniforms(gl::GLProgram& program);
+  void setProgramUniforms(render::ShaderProgram& program);
 };
 
 } // namespace polyscope

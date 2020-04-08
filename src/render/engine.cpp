@@ -13,10 +13,11 @@
 namespace polyscope {
 namespace render {
 
-TextureBuffer::TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_)
-    : dim(dim_), format(format_), sizeX(sizeX_), sizeY(sizeY_) {
+TextureBuffer::TextureBuffer(TextureTarget target_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_)
+    : target(target_), format(format_), sizeX(sizeX_), sizeY(sizeY_) {
   if (sizeX > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
-  if (dim > 1 && sizeY > (1 << 22)) throw std::runtime_error("OpenGL error: invalid texture dimensions");
+  if (target == TextureTarget::TwoD && sizeY > (1 << 22))
+    throw std::runtime_error("OpenGL error: invalid texture dimensions");
 }
 
 TextureBuffer::~TextureBuffer() {}
@@ -723,7 +724,7 @@ void Engine::loadDefaultColorMaps() {
 void Engine::showTextureInImGuiWindow(std::string windowName, TextureBuffer* buffer) {
   ImGui::Begin(windowName.c_str());
 
-  if (buffer->getDimension() != 2) error("only know how to show 2D textures");
+  if (buffer->getTextureTarget() != TextureTarget::TwoD) error("only know how to show 2D textures");
 
   float w = ImGui::GetWindowWidth();
   float h = w * buffer->getSizeY() / buffer->getSizeX();

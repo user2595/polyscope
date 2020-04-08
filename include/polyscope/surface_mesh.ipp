@@ -387,12 +387,6 @@ SurfaceMesh::addProjectiveParameterizationQuantity(std::string name, const T& co
 }
 
 template <class T>
-SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, const T& coords, DataType type) {
-  validateSize<T>(coords, cornerDataSize, "corner texture quantity " + name);
-  return addCornerTextureQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords), type);
-}
-
-template <class T>
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantity(std::string name, const T& data, DataType type) {
   validateSize(data, vertexDataSize, "vertex scalar quantity " + name);
   return addVertexScalarQuantityImpl(name, standardizeArray<double, T>(data), type);

@@ -2,7 +2,6 @@
 #pragma once
 
 #include "polyscope/affine_remapper.h"
-#include "polyscope/gl/color_maps.h"
 #include "polyscope/histogram.h"
 #include "polyscope/surface_mesh.h"
 
@@ -21,11 +20,11 @@ public:
 
 protected:
   const std::string definedOn;
-  std::unique_ptr<gl::GLProgram> program;
+  std::shared_ptr<render::ShaderProgram> program;
 
   // Helpers
   virtual void createProgram() = 0;
-  void setProgramUniforms(gl::GLProgram& program);
+  void setProgramUniforms(render::ShaderProgram& program);
 };
 
 // ========================================================
@@ -37,7 +36,7 @@ public:
   SurfaceVertexNormalQuantity(std::string name, std::vector<glm::vec3> normalValues_, SurfaceMesh& mesh_);
 
   virtual void createProgram() override;
-  void fillGeometryBuffers(gl::GLProgram& p);
+  void fillGeometryBuffers(render::ShaderProgram& p);
 
   void buildVertexInfoGUI(size_t vInd) override;
   virtual void writeToFile(std::string filename = "") override;
@@ -56,7 +55,7 @@ public:
   SurfaceFaceNormalQuantity(std::string name, std::vector<glm::vec3> normalValues_, SurfaceMesh& mesh_);
 
   virtual void createProgram() override;
-  void fillGeometryBuffers(gl::GLProgram& p);
+  void fillGeometryBuffers(render::ShaderProgram& p);
 
   void buildFaceInfoGUI(size_t fInd) override;
 

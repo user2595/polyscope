@@ -149,7 +149,7 @@ public:
   template<class T>
   SurfaceFaceNormalQuantity* addFaceNormalQuantity(std::string name, const T& normals);
 
-  template<class T>
+  template<class T, class S>
   SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors, ParamCoordsType type = ParamCoordsType::UNIT);
 
   // = Misc quantities

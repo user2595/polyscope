@@ -2,7 +2,6 @@
 #pragma once
 
 #include "polyscope/affine_remapper.h"
-#include "polyscope/gl/color_maps.h"
 #include "polyscope/histogram.h"
 #include "polyscope/surface_mesh.h"
 
@@ -25,7 +24,7 @@ public:
   virtual void writeToFile(std::string filename = "");
 
   virtual void createProgram();
-  void fillPositionBuffers(gl::GLProgram& p);
+  void fillPositionBuffers(render::ShaderProgram& p);
 
   // === Members
   const DataType dataType;
@@ -36,10 +35,10 @@ public:
 
 protected:
   // UI internals
-  std::unique_ptr<gl::GLProgram> program;
+  std::shared_ptr<render::ShaderProgram> program;
 
   // Helpers
-  void setProgramTextures(gl::GLProgram& program);
+  void setProgramTextures(render::ShaderProgram& program);
 };
 
 } // namespace polyscope

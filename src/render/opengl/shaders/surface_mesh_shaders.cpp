@@ -56,10 +56,10 @@ const ShaderStageSpecification PLAIN_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
     
     // source 
@@ -136,10 +136,10 @@ const ShaderStageSpecification SURFACE_WIREFRAME_FRAG_SHADER = {
     { },
     
     { // textures 
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
     
     // source 
@@ -242,11 +242,11 @@ const ShaderStageSpecification VERTCOLOR_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     // source 
@@ -333,11 +333,11 @@ const ShaderStageSpecification VERTCOLOR_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     // source 
@@ -422,10 +422,10 @@ const ShaderStageSpecification VERTCOLOR3_SURFACE_FRAG_SHADER = {
     { }, // attributes
     
     { // textures 
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
     
     // source 
@@ -510,11 +510,11 @@ const ShaderStageSpecification HALFEDGECOLOR_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     // source 
@@ -734,11 +734,11 @@ const ShaderStageSpecification VERT_DIST_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     
@@ -834,10 +834,10 @@ const ShaderStageSpecification PARAM_CHECKER_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
     
     // source 
@@ -899,10 +899,10 @@ const ShaderStageSpecification PARAM_GRID_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
     },
     
     // source 
@@ -963,11 +963,11 @@ const ShaderStageSpecification PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     // source 
@@ -1028,11 +1028,11 @@ const ShaderStageSpecification PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER = {
     
     // textures 
     {
-        {"t_mat_r", 2},
-        {"t_mat_g", 2},
-        {"t_mat_b", 2},
-        {"t_mat_k", 2},
-        {"t_colormap", 1}
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
     },
     
     // source 
@@ -1145,6 +1145,524 @@ const ShaderStageSpecification FACECOLOR_PLAIN_SURFACE_FRAG_SHADER = {
     )
 };
 */
+
+const ShaderStageSpecification EARTH_SURFACE_VERT_SHADER =  {
+
+    ShaderStageType::Vertex,
+
+    // uniforms
+    {
+        {"u_modelView", DataType::Matrix44Float},
+        {"u_projMatrix", DataType::Matrix44Float},
+    },
+
+    // attributes
+    {
+        {"a_position", DataType::Vector3Float},
+        {"a_normal", DataType::Vector3Float},
+        {"a_scale_factor", DataType::Vector3Float},
+        {"a_barycoord", DataType::Vector3Float},
+        {"a_texture_coord0", DataType::Vector3Float},
+        {"a_texture_coord1", DataType::Vector3Float},
+        {"a_texture_coord2", DataType::Vector3Float},
+    },
+
+    {}, // textures
+
+    // source
+    POLYSCOPE_GLSL(150 core,
+      uniform mat4 u_modelView;
+      uniform mat4 u_projMatrix;
+      in vec3 a_position;
+      in vec3 a_normal;
+      in vec3 a_scale_factor;
+      in vec3 a_barycoord;
+      in vec3 a_texture_coord0;
+      in vec3 a_texture_coord1;
+      in vec3 a_texture_coord2;
+      out vec3 Normal;
+      out vec3 scaleFactor;
+      out vec3 baryCoord;
+      out vec3 tCoord0;
+      out vec3 tCoord1;
+      out vec3 tCoord2;
+
+      void main()
+      {
+          Normal = mat3(u_modelView) * a_normal;
+          gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
+          baryCoord = a_barycoord;
+          scaleFactor = a_scale_factor;
+          tCoord0 = a_texture_coord0;
+          tCoord1 = a_texture_coord1;
+          tCoord2 = a_texture_coord2;
+      }
+    )
+};
+
+const ShaderStageSpecification EARTH_SURFACE_FRAG_SHADER = {
+
+  ShaderStageType::Fragment,
+
+    // uniforms
+    {
+     {"u_projectiveInterpolate", DataType::Int},
+    },
+
+    // attributes
+    {
+    },
+
+    // textures
+    {
+     {"t_earth", TextureTarget::Cube},
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
+     {"t_mat_k", TextureTarget::TwoD},
+    },
+
+    // source
+    POLYSCOPE_GLSL(150 core,
+      uniform samplerCube t_earth;
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      uniform sampler2D t_mat_k;
+      uniform int u_projectiveInterpolate;
+      in vec3 scaleFactor;
+      in vec3 baryCoord;
+      in vec3 Normal;
+      in vec3 tCoord0;
+      in vec3 tCoord1;
+      in vec3 tCoord2;
+      out vec4 outputF;
+
+      vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
+
+      void main()
+      {
+        vec3 pos0 = tCoord0 / baryCoord[0];
+        vec3 pos1 = tCoord1 / baryCoord[1];
+        vec3 pos2 = tCoord2 / baryCoord[2];
+
+        float b0 = baryCoord[0];
+        float b1 = baryCoord[1];
+        float b2 = baryCoord[2];
+
+        float s0 = exp(-scaleFactor[0] / baryCoord[0]) * baryCoord[0];
+        float s1 = exp(-scaleFactor[1] / baryCoord[1]) * baryCoord[1];
+        float s2 = exp(-scaleFactor[2] / baryCoord[2]) * baryCoord[2];
+
+        float sTotal = s0 + s1 + s2;
+        s0 /= sTotal;
+        s1 /= sTotal;
+        s2 /= sTotal;
+
+        vec3 projectiveCoord;
+        if (u_projectiveInterpolate > 0) {
+          projectiveCoord =
+            s0 * pos0 + s1 * pos1 + s2 * pos2;
+        } else {
+          projectiveCoord =
+            b0 * pos0 + b1 * pos1 + b2 * pos2;
+        }
+        vec3 color = texture(t_earth, projectiveCoord).rgb;
+        outputF = vec4(lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+      }
+    )
+};
+
+const ShaderStageSpecification TEXTURE_SURFACE_VERT_SHADER =  {
+
+  ShaderStageType::Vertex,
+
+    // uniforms
+    {
+       {"u_modelView", DataType::Matrix44Float},
+       {"u_projMatrix", DataType::Matrix44Float},
+    },
+
+    // attributes
+    {
+        {"a_position", DataType::Vector3Float},
+        {"a_normal", DataType::Vector3Float},
+        {"a_coord", DataType::Vector2Float},
+    },
+
+    // textures
+    {
+    },
+
+    // source
+    POLYSCOPE_GLSL(150 core,
+      uniform mat4 u_modelView;
+      uniform mat4 u_projMatrix;
+      in vec3 a_position;
+      in vec3 a_normal;
+      in vec2 a_texture_coord;
+      out vec3 Normal;
+      out vec2 Coord;
+
+      void main()
+      {
+          Normal = mat3(u_modelView) * a_normal;
+          Coord = a_texture_coord;
+          gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
+      }
+    )
+};
+
+const ShaderStageSpecification TEXTURE_SURFACE_FRAG_SHADER = {
+
+   ShaderStageType::Fragment,
+
+    // uniforms
+    {
+    },
+
+    // attributes
+    {
+    },
+
+    // textures
+    {
+     {"t_mat_r", TextureTarget::TwoD},
+     {"t_mat_g", TextureTarget::TwoD},
+     {"t_mat_b", TextureTarget::TwoD},
+     {"t_image", TextureTarget::TwoD},
+    },
+
+    // source
+    POLYSCOPE_GLSL(150 core,
+      uniform sampler2D t_image;
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      in vec3 Normal;
+      in vec2 Coord;
+      out vec4 outputF;
+
+      // Forward declarations of methods from <shaders/common.h>
+      vec4 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b);
+
+      void main()
+      {
+        vec3 color = texture(t_image, Coord).rgb;
+        outputF = lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b);
+      }
+
+    )
+};
+
+const ShaderStageSpecification PROJECTIVE_PARAM_SURFACE_VERT_SHADER =  {
+    
+    ShaderStageType::Vertex,
+    
+    // uniforms
+    {
+       {"u_modelView", DataType::Matrix44Float},
+       {"u_projMatrix", DataType::Matrix44Float},
+    },
+
+    // attributes
+    {
+        {"a_position", DataType::Vector3Float},
+        {"a_normal", DataType::Vector3Float},
+        {"a_coord", DataType::Vector3Float},
+    },
+    
+    {}, // textures
+
+    // source
+    POLYSCOPE_GLSL(150,
+      uniform mat4 u_modelView;
+      uniform mat4 u_projMatrix;
+      in vec3 a_position;
+      in vec3 a_normal;
+      in vec3 a_coord;
+      out vec3 Normal;
+      out vec3 hCoord;
+
+      void main()
+      {
+          Normal = mat3(u_modelView) * a_normal;
+          hCoord = a_coord;
+          gl_Position = u_projMatrix * u_modelView * vec4(a_position,1.);
+      }
+    )
+};
+
+const ShaderStageSpecification PROJECTIVE_PARAM_CHECKER_SURFACE_FRAG_SHADER = { 
+  
+    ShaderStageType::Fragment,
+  
+    // uniforms 
+    {
+        {"u_modLen", DataType::Float},
+        {"u_color1", DataType::Vector3Float},
+        {"u_color2", DataType::Vector3Float},
+    }, 
+
+    { }, // attributes
+    
+    // textures 
+    {
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+    },
+    
+    // source 
+    POLYSCOPE_GLSL(330 core,
+      uniform vec3 u_color1;
+      uniform vec3 u_color2;
+      uniform float u_modLen;
+
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      uniform sampler2D t_mat_k;
+
+      in vec3 Normal;
+      in vec3 hCoord;
+      layout(location = 0) out vec4 outputF;
+
+      vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
+
+      void main()
+      {
+        vec2 Coord = vec2(hCoord[0], hCoord[1]) / hCoord[2];
+
+        // Apply the checkerboard effect
+        float mX = mod(Coord.x, 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
+        float mY = mod(Coord.y, 2.0 * u_modLen) / u_modLen - 1.f;
+
+        float minD = min( min(abs(mX), 1.0 - abs(mX)), min(abs(mY), 1.0 - abs(mY))) * 2.; // rect distace from flipping sign in [0,1]
+        float p = 6;
+        float minDSmooth = pow(minD, 1. / p);
+        // TODO do some clever screen space derivative thing to prevent aliasing
+
+        float v = (mX * mY); // in [-1, 1], color switches at 0
+        float adjV = sign(v) * minDSmooth;
+
+        float s = smoothstep(-1.f, 1.f, adjV);
+
+        vec3 outColor = mix(u_color1, u_color2, s);
+
+
+        outputF = vec4(lightSurfaceMat(Normal, outColor, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+      }
+
+    )
+};
+
+
+
+const ShaderStageSpecification PROJECTIVE_PARAM_GRID_SURFACE_FRAG_SHADER = { 
+  
+    ShaderStageType::Fragment,
+  
+    // uniforms 
+    {
+        {"u_modLen", DataType::Float},
+        {"u_gridLineColor", DataType::Vector3Float},
+        {"u_gridBackgroundColor", DataType::Vector3Float},
+    }, 
+
+    { }, // attributes
+    
+    // textures 
+    {
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+    },
+    
+    // source 
+    POLYSCOPE_GLSL(330 core,
+      uniform vec3 u_gridLineColor;
+      uniform vec3 u_gridBackgroundColor;
+      uniform float u_modLen;
+
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      uniform sampler2D t_mat_k;
+
+      in vec3 Normal;
+      in vec3 hCoord;
+      layout(location = 0) out vec4 outputF;
+
+      vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
+
+      void main()
+      {
+        vec2 Coord = vec2(hCoord[0], hCoord[1]) / hCoord[2];
+
+        // Apply the checkerboard effect
+        float mX = mod(Coord.x, 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
+        float mY = mod(Coord.y, 2.0 * u_modLen) / u_modLen - 1.f;
+
+
+        float minD = min(min(abs(mX), 1.0 - abs(mX)), min(abs(mY), 1.0 - abs(mY))) * 2.; // rect distace from flipping sign in [0,1]
+        
+        float width = 0.05;
+        float slopeWidthPix = 5.;
+
+        vec2 fw = fwidth(Coord);
+        float scale = max(fw.x, fw.y);
+        float pWidth = slopeWidthPix * scale;
+
+        float s = smoothstep(width, width + pWidth, minD);
+        vec3 outColor = mix(u_gridLineColor, u_gridBackgroundColor, s);
+
+
+        outputF = vec4(lightSurfaceMat(Normal, outColor, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+      }
+
+    )
+};
+
+
+const ShaderStageSpecification PROJECTIVE_PARAM_LOCAL_RAD_SURFACE_FRAG_SHADER = { 
+  
+    ShaderStageType::Fragment,
+  
+    // uniforms 
+    {
+        {"u_modLen", DataType::Float},
+        {"u_angle", DataType::Float},
+    }, 
+
+    { }, // attributes
+    
+    // textures 
+    {
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
+    },
+    
+    // source 
+    POLYSCOPE_GLSL(330 core,
+      uniform float u_modLen;
+      uniform float u_angle;
+
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      uniform sampler2D t_mat_k;
+      uniform sampler1D t_colormap;
+
+      in vec3 Normal;
+      in vec3 hCoord;
+      layout(location = 0) out vec4 outputF;
+
+      vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
+
+      void main()
+      {
+        vec2 Coord = vec2(hCoord[0], hCoord[1]) / hCoord[2];
+
+        // Get the color at this point
+        float pi = 3.14159265359;
+        float angle = atan(Coord.y, Coord.x) / (2. * pi) + 0.5; // in [0,1]
+        float shiftedAngle = mod(angle + u_angle/(2. * pi), 1.);
+        vec3 color = texture(t_colormap, shiftedAngle).rgb;
+        vec3 colorDark = color * .5;
+
+        // Apply the checkerboard effect (vert similar to rectangular checker
+        float mX = mod(length(Coord), 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
+        float minD = min(abs(mX), 1.0 - abs(mX)) * 2.; // rect distace from flipping sign in [0,1]
+        float p = 6;
+        float minDSmooth = pow(minD, 1. / p);
+        float v = mX; // in [-1, 1], color switches at 0
+        float adjV = sign(v) * minDSmooth;
+        float s = smoothstep(-1.f, 1.f, adjV);
+
+        vec3 outColor = mix(color, colorDark, s);
+
+        outputF = vec4(lightSurfaceMat(Normal, outColor, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+      }
+
+    )
+};
+
+const ShaderStageSpecification PROJECTIVE_PARAM_LOCAL_CHECKER_SURFACE_FRAG_SHADER = { 
+  
+    ShaderStageType::Fragment,
+  
+    // uniforms 
+    {
+        {"u_modLen", DataType::Float},
+        {"u_angle", DataType::Float},
+    }, 
+
+    { }, // attributes
+    
+    // textures 
+    {
+        {"t_mat_r", TextureTarget::TwoD},
+        {"t_mat_g", TextureTarget::TwoD},
+        {"t_mat_b", TextureTarget::TwoD},
+        {"t_mat_k", TextureTarget::TwoD},
+        {"t_colormap", TextureTarget::OneD}
+    },
+    
+    // source 
+    POLYSCOPE_GLSL(330 core,
+      uniform float u_modLen;
+      uniform float u_angle;
+
+      uniform sampler2D t_mat_r;
+      uniform sampler2D t_mat_g;
+      uniform sampler2D t_mat_b;
+      uniform sampler2D t_mat_k;
+      uniform sampler1D t_colormap;
+
+      in vec3 Normal;
+      in vec3 hCoord;
+      layout(location = 0) out vec4 outputF;
+
+      vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
+
+      void main()
+      {
+        vec2 Coord = vec2(hCoord[0], hCoord[1]) / hCoord[2];
+
+        // Rotate coords
+        float cosT = cos(u_angle);
+        float sinT = sin(u_angle);
+        vec2 rotCoord = vec2(cosT * Coord.x - sinT * Coord.y, sinT * Coord.x + cosT * Coord.y);
+          
+        // Get the color at this point
+        float pi = 3.14159265359;
+        float angle = atan(rotCoord.y, rotCoord.x) / (2. * pi) + 0.5; // in [0,1]
+        vec3 color = texture(t_colormap, angle).rgb;
+        vec3 colorDark = color * .5;
+
+        // Apply the checkerboard effect (copied from checker above)
+        float mX = mod(rotCoord.x, 2.0 * u_modLen) / u_modLen - 1.f; // in [-1, 1]
+        float mY = mod(rotCoord.y, 2.0 * u_modLen) / u_modLen - 1.f;
+        float minD = min( min(abs(mX), 1.0 - abs(mX)), min(abs(mY), 1.0 - abs(mY))) * 2.; // rect distace from flipping sign in [0,1]
+        float p = 6;
+        float minDSmooth = pow(minD, 1. / p);
+        float v = (mX * mY); // in [-1, 1], color switches at 0
+        float adjV = sign(v) * minDSmooth;
+        float s = smoothstep(-1.f, 1.f, adjV);
+
+        vec3 outColor = mix(color, colorDark, s);
+
+        outputF = vec4(lightSurfaceMat(Normal, outColor, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+      }
+
+    )
+};
 
 // clang-format on
 
