@@ -135,5 +135,24 @@ public:
   std::vector<double> values;
 };
 
+// ========================================================
+// ==========          Corner Scalar           ==========
+// ========================================================
+
+class SurfaceCornerScalarQuantity : public SurfaceScalarQuantity {
+public:
+  SurfaceCornerScalarQuantity(std::string name, std::vector<double> values_, SurfaceMesh& mesh_,
+                              DataType dataType_ = DataType::STANDARD);
+  //   ~SurfaceCornerScalarQuantity();
+
+  virtual void createProgram() override;
+
+  void fillColorBuffers(render::ShaderProgram& p);
+
+  // TODO: no info GUI
+
+  // === Members
+  std::vector<double> values;
+};
 
 } // namespace polyscope

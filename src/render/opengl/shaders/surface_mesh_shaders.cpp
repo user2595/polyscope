@@ -233,7 +233,7 @@ const ShaderStageSpecification VERTCOLOR_SURFACE_FRAG_SHADER = {
     {
         {"u_rangeLow", DataType::Float},
         {"u_rangeHigh", DataType::Float},
-        {"u_isoline", DataType::Float}
+        // {"u_isoline", DataType::Float}
     }, 
 
     // attributes
@@ -253,7 +253,7 @@ const ShaderStageSpecification VERTCOLOR_SURFACE_FRAG_SHADER = {
     POLYSCOPE_GLSL(330 core,
       uniform float u_rangeLow;
       uniform float u_rangeHigh;
-      uniform float u_isoline;
+      // uniform float u_isoline;
       uniform sampler1D t_colormap;
       uniform sampler2D t_mat_r;
       uniform sampler2D t_mat_g;
@@ -268,9 +268,9 @@ const ShaderStageSpecification VERTCOLOR_SURFACE_FRAG_SHADER = {
       vec3 lightSurfaceMat(vec3 normal, vec3 color, sampler2D t_mat_r, sampler2D t_mat_g, sampler2D t_mat_b, sampler2D t_mat_k);
 
       vec3 surfaceColor() {
-        if (abs(Colorval - u_isoline) < 5e-4 * (u_rangeHigh - u_rangeLow)) {
-          return vec3(0, 0, 0);
-        }
+        // if (abs(Colorval - u_isoline) < 5e-4 * (u_rangeHigh - u_rangeLow)) {
+        //   return vec3(0, 0, 0);
+        // }
         float t = (Colorval - u_rangeLow) / (u_rangeHigh - u_rangeLow);
         t = clamp(t, 0.f, 1.f);
         return texture(t_colormap, t).rgb;
@@ -1268,7 +1268,8 @@ const ShaderStageSpecification EARTH_SURFACE_FRAG_SHADER = {
             b0 * pos0 + b1 * pos1 + b2 * pos2;
         }
         vec3 color = texture(t_earth, projectiveCoord).rgb;
-        outputF = vec4(lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b, t_mat_k), 1.);
+        vec3 shadedColor = lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b, t_mat_k);
+        outputF = vec4(shadedColor, 1.);
       }
     )
 };

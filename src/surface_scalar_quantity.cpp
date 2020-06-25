@@ -437,4 +437,79 @@ void SurfaceHalfedgeScalarQuantity::buildHalfedgeInfoGUI(size_t heInd) {
   ImGui::NextColumn();
 }
 
+
+// ========================================================
+// ==========           Corner Scalar            ==========
+// ========================================================
+
+SurfaceCornerScalarQuantity::SurfaceCornerScalarQuantity(std::string name, std::vector<double> values_,
+                                                         SurfaceMesh& mesh_, DataType dataType_)
+    : SurfaceScalarQuantity(name, mesh_, "corner", dataType_), values(std::move(values_))
+
+{
+  std::vector<double> cornerAreas;
+  size_t iF = 0;
+  for (const std::vector<size_t>& f : parent.faces) {
+    size_t D = f.size();
+    double cornerArea = parent.faceAreas[iF++] / ((double)D);
+    for (size_t iC = 0; iC < D; ++iC) {
+      cornerAreas.push_back(cornerArea);
+    }
+  }
+
+  hist.updateColormap(cMap.get());
+  hist.buildHistogram(values, cornerAreas);
+
+  dataRange = robustMinMax(values, 1e-5);
+  resetMapRange();
+}
+
+void SurfaceCornerScalarQuantity::createProgram() {
+  // Create the program to draw this quantity
+  program = render::engine->generateShaderProgram(
+      {render::VERTCOLOR_SURFACE_VERT_SHADER, render::VERTCOLOR_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
+
+  // Fill color buffers
+  parent.fillGeometryBuffers(*program);
+  fillColorBuffers(*program);
+  render::engine->setMaterial(*program, parent.getMaterial());
+}
+
+
+void SurfaceCornerScalarQuantity::fillColorBuffers(render::ShaderProgram& p) {
+  std::vector<double> colorval;
+  colorval.reserve(3 * parent.nFacesTriangulation());
+
+  size_t iCorner = 0;
+  for (size_t iF = 0; iF < parent.nFaces(); iF++) {
+    auto& face = parent.faces[iF];
+    size_t D = face.size();
+
+    // implicitly triangulate from root
+    size_t cRoot = iCorner;
+    for (size_t j = 1; (j + 1) < D; j++) {
+      size_t cB = iCorner + j;
+      size_t cC = iCorner + ((j + 1) % D);
+
+      colorval.push_back(values[cRoot]);
+      colorval.push_back(values[cB]);
+      colorval.push_back(values[cC]);
+    }
+
+    iCorner += D;
+  }
+
+  // Store data in buffers
+  p.setAttribute("a_colorval", colorval);
+  p.setTextureFromColormap("t_colormap", cMap.get());
+}
+
+// TODO: this?
+// void SurfaceCornerScalarQuantity::buildCornerInfoGUI(size_t cInd) {
+//   ImGui::TextUnformatted(name.c_str());
+//   ImGui::NextColumn();
+//   ImGui::Text("%g", values[cInd]);
+//   ImGui::NextColumn();
+// }
+
 } // namespace polyscope
