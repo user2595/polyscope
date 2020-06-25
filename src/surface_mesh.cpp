@@ -1244,11 +1244,10 @@ SurfaceGraphQuantity* SurfaceMesh::addSurfaceGraphQuantityImpl(std::string name,
 }
 
 SurfaceCornerProjectiveParameterizationQuantity*
-SurfaceMesh::addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords,
-                                                       const std::vector<double>& cornerScaleFactors,
+SurfaceMesh::addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec3>& coords,
                                                        ParamCoordsType type) {
-  SurfaceCornerProjectiveParameterizationQuantity* q = new SurfaceCornerProjectiveParameterizationQuantity(
-      name, applyPermutation(coords, cornerPerm), applyPermutation(cornerScaleFactors, cornerPerm), type, *this);
+  SurfaceCornerProjectiveParameterizationQuantity* q =
+      new SurfaceCornerProjectiveParameterizationQuantity(name, applyPermutation(coords, cornerPerm), type, *this);
   addQuantity(q);
 
   return q;
@@ -1258,6 +1257,14 @@ SurfaceVertexScalarQuantity* SurfaceMesh::addVertexScalarQuantityImpl(std::strin
                                                                       DataType type) {
   SurfaceVertexScalarQuantity* q =
       new SurfaceVertexScalarQuantity(name, applyPermutation(data, vertexPerm), *this, type);
+  addQuantity(q);
+  return q;
+}
+
+SurfaceCornerScalarQuantity* SurfaceMesh::addCornerScalarQuantityImpl(std::string name, const std::vector<double>& data,
+                                                                      DataType type) {
+  SurfaceCornerScalarQuantity* q =
+      new SurfaceCornerScalarQuantity(name, applyPermutation(data, cornerPerm), *this, type);
   addQuantity(q);
   return q;
 }

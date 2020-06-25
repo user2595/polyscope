@@ -82,18 +82,14 @@ protected:
 class SurfaceCornerProjectiveParameterizationQuantity : public SurfaceProjectiveParameterizationQuantity {
 
 public:
-  SurfaceCornerProjectiveParameterizationQuantity(std::string name, std::vector<glm::vec2> values_,
+  SurfaceCornerProjectiveParameterizationQuantity(std::string name, std::vector<glm::vec3> values_,
                                                   ParamCoordsType type_, SurfaceMesh& mesh_);
-  SurfaceCornerProjectiveParameterizationQuantity(std::string name, std::vector<glm::vec2> values_,
-                                                  std::vector<double> cornerScaleFactors_, ParamCoordsType type_,
-                                                  SurfaceMesh& mesh_);
 
   virtual void buildHalfedgeInfoGUI(size_t heInd) override;
   virtual std::string niceName() override;
 
   // === Members
-  std::vector<glm::vec2> coords; // on corners
-  std::vector<double> cornerScaleFactors;
+  std::vector<glm::vec3> coords; // on corners
 
 protected:
   virtual void fillPositionBuffers(render::ShaderProgram& p) override;

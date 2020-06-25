@@ -376,14 +376,11 @@ SurfaceTextureQuantity* SurfaceMesh::addCornerTextureQuantity(std::string name, 
 }
 
 // Standard a parameterization, defined at corners
-template <class T, class S>
+template <class T>
 SurfaceCornerProjectiveParameterizationQuantity*
-SurfaceMesh::addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors,
-                                                   ParamCoordsType type) {
+SurfaceMesh::addProjectiveParameterizationQuantity(std::string name, const T& coords, ParamCoordsType type) {
   validateSize(coords, cornerDataSize, "parameterization quantity " + name);
-  validateSize(cornerScaleFactors, cornerDataSize, "parameterization quantity " + name);
-  return addProjectiveParameterizationQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(coords),
-                                                   standardizeArray<double, S>(cornerScaleFactors), type);
+  return addProjectiveParameterizationQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(coords), type);
 }
 
 template <class T>
@@ -409,6 +406,12 @@ template <class T>
 SurfaceHalfedgeScalarQuantity* SurfaceMesh::addHalfedgeScalarQuantity(std::string name, const T& data, DataType type) {
   validateSize(data, halfedgeDataSize, "halfedge scalar quantity " + name);
   return addHalfedgeScalarQuantityImpl(name, standardizeArray<double, T>(data), type);
+}
+
+template <class T>
+SurfaceCornerScalarQuantity* SurfaceMesh::addCornerScalarQuantity(std::string name, const T& data, DataType type) {
+  validateSize(data, cornerDataSize, "corner scalar quantity " + name);
+  return addCornerScalarQuantityImpl(name, standardizeArray<double, T>(data), type);
 }
 
 

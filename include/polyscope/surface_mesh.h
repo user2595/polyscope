@@ -48,6 +48,7 @@ class SurfaceVertexScalarQuantity;
 class SurfaceFaceScalarQuantity;
 class SurfaceEdgeScalarQuantity;
 class SurfaceHalfedgeScalarQuantity;
+class SurfaceCornerScalarQuantity;
 class SurfaceDistanceQuantity;
 class SurfaceCornerParameterizationQuantity;
 class SurfaceVertexParameterizationQuantity;
@@ -109,6 +110,7 @@ public:
   template <class T> SurfaceFaceScalarQuantity* addFaceScalarQuantity(std::string name, const T& data, DataType type = DataType::STANDARD); 
   template <class T> SurfaceEdgeScalarQuantity* addEdgeScalarQuantity(std::string name, const T& data, DataType type = DataType::STANDARD); 
   template <class T> SurfaceHalfedgeScalarQuantity* addHalfedgeScalarQuantity(std::string name, const T& data, DataType type = DataType::STANDARD);
+  template <class T> SurfaceCornerScalarQuantity* addCornerScalarQuantity(std::string name, const T& data, DataType type = DataType::STANDARD); 
 
   // = Distance (expect scalar array)
   template <class T> SurfaceDistanceQuantity* addVertexDistanceQuantity(std::string name, const T& data);
@@ -149,8 +151,9 @@ public:
   template<class T>
   SurfaceFaceNormalQuantity* addFaceNormalQuantity(std::string name, const T& normals);
 
-  template<class T, class S>
-  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantity(std::string name, const T& coords, const S& cornerScaleFactors, ParamCoordsType type = ParamCoordsType::UNIT);
+  template<class T>
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantity(std::string name, const T& coords,
+                                                                                         ParamCoordsType type = ParamCoordsType::UNIT);
 
   // = Misc quantities
   template <class P, class E>
@@ -377,12 +380,13 @@ private:
   SurfaceFaceScalarQuantity* addFaceScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
   SurfaceEdgeScalarQuantity* addEdgeScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
   SurfaceHalfedgeScalarQuantity* addHalfedgeScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
+  SurfaceCornerScalarQuantity* addCornerScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type);
   SurfaceDistanceQuantity* addVertexDistanceQuantityImpl(std::string name, const std::vector<double>& data);
   SurfaceDistanceQuantity* addVertexSignedDistanceQuantityImpl(std::string name, const std::vector<double>& data);
   SurfaceCornerParameterizationQuantity* addParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addVertexParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
   SurfaceVertexParameterizationQuantity* addLocalParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, ParamCoordsType type);
-  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& coords, const std::vector<double>& cornerScaleFactors, ParamCoordsType type);
+  SurfaceCornerProjectiveParameterizationQuantity* addProjectiveParameterizationQuantityImpl(std::string name, const std::vector<glm::vec3>& coords, ParamCoordsType type);
   SurfaceVertexVectorQuantity* addVertexVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors, VectorType vectorType);
   SurfaceFaceVectorQuantity* addFaceVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors, VectorType vectorType);
   SurfaceFaceIntrinsicVectorQuantity* addFaceIntrinsicVectorQuantityImpl(std::string name, const std::vector<glm::vec2>& vectors, int nSym, VectorType vectorType);

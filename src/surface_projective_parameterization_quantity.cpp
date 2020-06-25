@@ -248,22 +248,10 @@ void SurfaceProjectiveParameterizationQuantity::geometryChanged() { program.rese
 // ===============  Corner ProjectiveParameterization  ====================
 // ==============================================================
 
-// TODO: move vizstyle out of here
 SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParameterizationQuantity(
-    std::string name, std::vector<glm::vec2> coords_, ParamCoordsType type_, SurfaceMesh& mesh_)
+    std::string name, std::vector<glm::vec3> coords_, ParamCoordsType type_, SurfaceMesh& mesh_)
     : SurfaceProjectiveParameterizationQuantity(name, type_, ParamVizStyle::CHECKER, mesh_),
-      coords(std::move(coords_)) {
-  cornerScaleFactors.reserve(coords.size());
-  for (size_t iC = 0; iC < coords.size(); ++iC) {
-    cornerScaleFactors.push_back(0);
-  }
-}
-
-SurfaceCornerProjectiveParameterizationQuantity::SurfaceCornerProjectiveParameterizationQuantity(
-    std::string name, std::vector<glm::vec2> coords_, std::vector<double> cornerScaleFactors_, ParamCoordsType type_,
-    SurfaceMesh& mesh_)
-    : SurfaceProjectiveParameterizationQuantity(name, type_, ParamVizStyle::CHECKER, mesh_), coords(std::move(coords_)),
-      cornerScaleFactors(std::move(cornerScaleFactors_)) {}
+      coords(std::move(coords_)) {}
 
 std::string SurfaceCornerProjectiveParameterizationQuantity::niceName() { return name + " (corner parameterization)"; }
 
@@ -282,22 +270,14 @@ void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(render
     size_t vRoot = face[0];
     for (size_t j = 1; (j + 1) < D; j++) {
 
-      glm::vec2 vRootVal, vBVal, vCVal;
-      double vRootSF, vBSF, vCSF;
+      glm::vec3 vRootVal, vBVal, vCVal;
       vRootVal = coords[cornerCounter];
       vBVal = coords[cornerCounter + j];
       vCVal = coords[cornerCounter + j + 1];
-      vRootSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter] : 0;
-      vBSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter + j] : 0;
-      vCSF = (projectiveInterpolate) ? cornerScaleFactors[cornerCounter + j + 1] : 0;
 
-      glm::vec3 projRoot = glm::vec3{vRootVal.x, vRootVal.y, 1} * (float)exp(-vRootSF);
-      glm::vec3 projB = glm::vec3{vBVal.x, vBVal.y, 1} * (float)exp(-vBSF);
-      glm::vec3 projC = glm::vec3{vCVal.x, vCVal.y, 1} * (float)exp(-vCSF);
-
-      texCoord.emplace_back(projRoot);
-      texCoord.emplace_back(projB);
-      texCoord.emplace_back(projC);
+      texCoord.emplace_back(vRootVal);
+      texCoord.emplace_back(vBVal);
+      texCoord.emplace_back(vCVal);
     }
     cornerCounter += D;
   }
