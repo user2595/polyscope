@@ -52,6 +52,9 @@ private:
   PersistentValue<glm::vec3> frameColorX;
   PersistentValue<glm::vec3> frameColorY;
   PersistentValue<glm::vec3> frameColorZ;
+  PersistentValue<bool> showX;
+  PersistentValue<bool> showY;
+  PersistentValue<bool> showZ;
   PersistentValue<std::string> material;
 
   // The map that takes values to [0,1] for drawing

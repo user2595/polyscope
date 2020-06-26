@@ -25,7 +25,8 @@ PointCloudFrameQuantity::PointCloudFrameQuantity(std::string name, std::vector<s
       frameRadius(uniquePrefix() + "#frameRadius", relativeValue(0.0025)),
       frameColorX(uniquePrefix() + "#frameColorX", getNextUniqueColor()),
       frameColorY(uniquePrefix() + "#frameColorY", getNextUniqueColor()),
-      frameColorZ(uniquePrefix() + "#frameColorZ", getNextUniqueColor()),
+      frameColorZ(uniquePrefix() + "#frameColorZ", getNextUniqueColor()), showX(uniquePrefix() + "#frameShowX", true),
+      showY(uniquePrefix() + "#frameShowY", true), showZ(uniquePrefix() + "#frameShowZ", true),
       material(uniquePrefix() + "#material", "clay") {
 
   if (frames.size() != parent.points.size()) {
@@ -94,9 +95,15 @@ void PointCloudFrameQuantity::draw() {
   programY->setUniform("u_viewport", render::engine->getCurrentViewport());
   programZ->setUniform("u_viewport", render::engine->getCurrentViewport());
 
-  programX->draw();
-  programY->draw();
-  programZ->draw();
+  if (showX.get()) {
+    programX->draw();
+  }
+  if (showY.get()) {
+    programY->draw();
+  }
+  if (showZ.get()) {
+    programZ->draw();
+  }
 }
 
 void PointCloudFrameQuantity::createProgram() {
@@ -136,20 +143,24 @@ void PointCloudFrameQuantity::geometryChanged() {
 }
 
 void PointCloudFrameQuantity::buildCustomUI() {
-  ImGui::SameLine();
 
   if (cross) {
     if (ImGui::ColorEdit3("Color", &frameColorX.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
   } else {
+    ImGui::Checkbox("Draw X", &showX.get());
+    ImGui::SameLine();
     if (ImGui::ColorEdit3("Color X", &frameColorX.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
+    ImGui::Checkbox("Draw Y", &showY.get());
+    ImGui::SameLine();
     if (ImGui::ColorEdit3("Color Y", &frameColorY.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
+    ImGui::Checkbox("Draw Z", &showZ.get());
+    ImGui::SameLine();
     if (ImGui::ColorEdit3("Color Z", &frameColorZ.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
   }
-  ImGui::SameLine();
 
   // === Options popup
   if (ImGui::Button("Options")) {
