@@ -55,6 +55,7 @@ private:
   PersistentValue<bool> showX;
   PersistentValue<bool> showY;
   PersistentValue<bool> showZ;
+  PersistentValue<bool> drawCube;
   PersistentValue<std::string> material;
 
   // The map that takes values to [0,1] for drawing
@@ -64,6 +65,7 @@ private:
   std::shared_ptr<render::ShaderProgram> programX;
   std::shared_ptr<render::ShaderProgram> programY;
   std::shared_ptr<render::ShaderProgram> programZ;
+  std::shared_ptr<render::ShaderProgram> programCube;
 };
 
 } // namespace polyscope

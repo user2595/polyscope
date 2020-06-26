@@ -55,10 +55,10 @@ extern const ShaderStageSpecification PASSTHRU_VECTOR_VERT_SHADER;
 extern const ShaderStageSpecification VECTOR_GEOM_SHADER;
 extern const ShaderStageSpecification VECTOR_FRAG_SHADER;
 
-// == Frame shaders
-extern const ShaderStageSpecification PASSTHRU_FRAME_VERT_SHADER;
-extern const ShaderStageSpecification FRAME_GEOM_SHADER;
-extern const ShaderStageSpecification FRAME_FRAG_SHADER;
+// == Cube shaders
+extern const ShaderStageSpecification PASSTHRU_CUBE_VERT_SHADER;
+extern const ShaderStageSpecification CUBE_GEOM_SHADER;
+extern const ShaderStageSpecification CUBE_FRAG_SHADER;
 
 // == Ribbon shaders
 extern const ShaderStageSpecification RIBBON_VERT_SHADER;

@@ -27,7 +27,7 @@ PointCloudFrameQuantity::PointCloudFrameQuantity(std::string name, std::vector<s
       frameColorY(uniquePrefix() + "#frameColorY", getNextUniqueColor()),
       frameColorZ(uniquePrefix() + "#frameColorZ", getNextUniqueColor()), showX(uniquePrefix() + "#frameShowX", true),
       showY(uniquePrefix() + "#frameShowY", true), showZ(uniquePrefix() + "#frameShowZ", true),
-      material(uniquePrefix() + "#material", "clay") {
+      drawCube(uniquePrefix() + "#frameDrawCube", false), material(uniquePrefix() + "#material", "clay") {
 
   if (frames.size() != parent.points.size()) {
     polyscope::error("Point cloud frame quantity " + name + " does not have same number of values (" +
@@ -58,51 +58,69 @@ void PointCloudFrameQuantity::draw() {
     createProgram();
   }
 
-  // Set uniforms
-  parent.setTransformUniforms(*programX);
-  parent.setTransformUniforms(*programY);
-  parent.setTransformUniforms(*programZ);
 
-  programX->setUniform("u_radius", frameRadius.get().asAbsolute());
-  programY->setUniform("u_radius", frameRadius.get().asAbsolute());
-  programZ->setUniform("u_radius", frameRadius.get().asAbsolute());
-  if (cross) {
-    programX->setUniform("u_baseColor", frameColorX.get());
-    programY->setUniform("u_baseColor", frameColorX.get());
-    programZ->setUniform("u_baseColor", frameColorX.get());
+  if (drawCube.get()) {
+    parent.setTransformUniforms(*programCube);
+
+    if (vectorType == VectorType::AMBIENT) {
+      programCube->setUniform("u_lengthMult", 1.0);
+    } else {
+      programCube->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+    }
+
+    programCube->setUniform("u_baseColorX", frameColorX.get());
+    programCube->setUniform("u_baseColorY", frameColorY.get());
+    programCube->setUniform("u_baseColorZ", frameColorZ.get());
+
+    programCube->draw();
   } else {
-    programX->setUniform("u_baseColor", frameColorX.get());
-    programY->setUniform("u_baseColor", frameColorY.get());
-    programZ->setUniform("u_baseColor", frameColorZ.get());
-  }
+    // Set uniforms
+    parent.setTransformUniforms(*programX);
+    parent.setTransformUniforms(*programY);
+    parent.setTransformUniforms(*programZ);
 
-  if (vectorType == VectorType::AMBIENT) {
-    programX->setUniform("u_lengthMult", 1.0);
-    programY->setUniform("u_lengthMult", 1.0);
-    programZ->setUniform("u_lengthMult", 1.0);
-  } else {
-    programX->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
-    programY->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
-    programZ->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
-  }
+    programX->setUniform("u_radius", frameRadius.get().asAbsolute());
+    programY->setUniform("u_radius", frameRadius.get().asAbsolute());
+    programZ->setUniform("u_radius", frameRadius.get().asAbsolute());
 
-  glm::mat4 P = view::getCameraPerspectiveMatrix();
-  glm::mat4 Pinv = glm::inverse(P);
-  programX->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
-  programY->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
-  programZ->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
-  programX->setUniform("u_viewport", render::engine->getCurrentViewport());
-  programY->setUniform("u_viewport", render::engine->getCurrentViewport());
-  programZ->setUniform("u_viewport", render::engine->getCurrentViewport());
+    if (cross) {
+      programX->setUniform("u_baseColor", frameColorX.get());
+      programY->setUniform("u_baseColor", frameColorX.get());
+      programZ->setUniform("u_baseColor", frameColorX.get());
+    } else {
+      programX->setUniform("u_baseColor", frameColorX.get());
+      programY->setUniform("u_baseColor", frameColorY.get());
+      programZ->setUniform("u_baseColor", frameColorZ.get());
+    }
 
-  if (showX.get()) {
-    programX->draw();
-  }
-  if (showY.get()) {
-    programY->draw();
-  }
-  if (showZ.get()) {
-    programZ->draw();
+    if (vectorType == VectorType::AMBIENT) {
+      programX->setUniform("u_lengthMult", 1.0);
+      programY->setUniform("u_lengthMult", 1.0);
+      programZ->setUniform("u_lengthMult", 1.0);
+    } else {
+      programX->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+      programY->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+      programZ->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+    }
+
+    glm::mat4 P = view::getCameraPerspectiveMatrix();
+    glm::mat4 Pinv = glm::inverse(P);
+    programX->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+    programY->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+    programZ->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+    programX->setUniform("u_viewport", render::engine->getCurrentViewport());
+    programY->setUniform("u_viewport", render::engine->getCurrentViewport());
+    programZ->setUniform("u_viewport", render::engine->getCurrentViewport());
+
+    if (showX.get()) {
+      programX->draw();
+    }
+    if (showY.get()) {
+      programY->draw();
+    }
+    if (showZ.get()) {
+      programZ->draw();
+    }
   }
 }
 
@@ -113,6 +131,8 @@ void PointCloudFrameQuantity::createProgram() {
       {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER}, DrawMode::Points);
   programZ = render::engine->generateShaderProgram(
       {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER}, DrawMode::Points);
+  programCube = render::engine->generateShaderProgram(
+      {render::PASSTHRU_CUBE_VERT_SHADER, render::CUBE_GEOM_SHADER, render::CUBE_FRAG_SHADER}, DrawMode::Points);
 
   // Fill buffers
   std::vector<glm::vec3> mappedFrames1;
@@ -131,9 +151,15 @@ void PointCloudFrameQuantity::createProgram() {
   programY->setAttribute("a_position", parent.points);
   programZ->setAttribute("a_position", parent.points);
 
+  programCube->setAttribute("a_vector_x", mappedFrames1);
+  programCube->setAttribute("a_vector_y", mappedFrames2);
+  programCube->setAttribute("a_vector_z", mappedFrames3);
+  programCube->setAttribute("a_position", parent.points);
+
   render::engine->setMaterial(*programX, getMaterial());
   render::engine->setMaterial(*programY, getMaterial());
   render::engine->setMaterial(*programZ, getMaterial());
+  render::engine->setMaterial(*programCube, getMaterial());
 }
 
 void PointCloudFrameQuantity::geometryChanged() {
@@ -144,20 +170,29 @@ void PointCloudFrameQuantity::geometryChanged() {
 
 void PointCloudFrameQuantity::buildCustomUI() {
 
+  ImGui::Checkbox("Draw Cube", &drawCube.get());
+
   if (cross) {
     if (ImGui::ColorEdit3("Color", &frameColorX.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
   } else {
-    ImGui::Checkbox("Draw X", &showX.get());
-    ImGui::SameLine();
+
+    if (!drawCube.get()) {
+      ImGui::Checkbox("Draw X", &showX.get());
+      ImGui::SameLine();
+    }
     if (ImGui::ColorEdit3("Color X", &frameColorX.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
-    ImGui::Checkbox("Draw Y", &showY.get());
-    ImGui::SameLine();
+    if (!drawCube.get()) {
+      ImGui::Checkbox("Draw Y", &showY.get());
+      ImGui::SameLine();
+    }
     if (ImGui::ColorEdit3("Color Y", &frameColorY.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
-    ImGui::Checkbox("Draw Z", &showZ.get());
-    ImGui::SameLine();
+    if (!drawCube.get()) {
+      ImGui::Checkbox("Draw Z", &showZ.get());
+      ImGui::SameLine();
+    }
     if (ImGui::ColorEdit3("Color Z", &frameColorZ.get()[0], ImGuiColorEditFlags_NoInputs))
       setFrameColors(getFrameColors());
   }
@@ -179,9 +214,11 @@ void PointCloudFrameQuantity::buildCustomUI() {
     }
   }
 
-  if (ImGui::SliderFloat("Radius", frameRadius.get().getValuePtr(), 0.0, .1, "%.5f", 3.)) {
-    frameRadius.manuallyChanged();
-    requestRedraw();
+  if (!drawCube.get()) {
+    if (ImGui::SliderFloat("Radius", frameRadius.get().getValuePtr(), 0.0, .1, "%.5f", 3.)) {
+      frameRadius.manuallyChanged();
+      requestRedraw();
+    }
   }
 
   { // Draw max and min magnitude
