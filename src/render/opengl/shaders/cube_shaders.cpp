@@ -99,13 +99,13 @@ const ShaderStageSpecification CUBE_GEOM_SHADER = {
 
             // X Axis Faces
             color = u_baseColorX; Normal =  xViewVal; gl_Position = c1; EmitVertex();
-            color = u_baseColorX; Normal =  xViewVal; gl_Position = c5; EmitVertex();
             color = u_baseColorX; Normal =  xViewVal; gl_Position = c4; EmitVertex();
+            color = u_baseColorX; Normal =  xViewVal; gl_Position = c5; EmitVertex();
             color = u_baseColorX; Normal =  xViewVal; gl_Position = c8; EmitVertex();
             EndPrimitive();
             color = u_baseColorX; Normal = -xViewVal; gl_Position = c2; EmitVertex();
-            color = u_baseColorX; Normal = -xViewVal; gl_Position = c3; EmitVertex();
             color = u_baseColorX; Normal = -xViewVal; gl_Position = c6; EmitVertex();
+            color = u_baseColorX; Normal = -xViewVal; gl_Position = c3; EmitVertex();
             color = u_baseColorX; Normal = -xViewVal; gl_Position = c7; EmitVertex();
             EndPrimitive();
 
@@ -116,8 +116,8 @@ const ShaderStageSpecification CUBE_GEOM_SHADER = {
             color = u_baseColorY; Normal =  yViewVal; gl_Position = c6; EmitVertex();
             EndPrimitive();
             color = u_baseColorY; Normal = -yViewVal; gl_Position = c4; EmitVertex();
-            color = u_baseColorY; Normal = -yViewVal; gl_Position = c8; EmitVertex();
             color = u_baseColorY; Normal = -yViewVal; gl_Position = c3; EmitVertex();
+            color = u_baseColorY; Normal = -yViewVal; gl_Position = c8; EmitVertex();
             color = u_baseColorY; Normal = -yViewVal; gl_Position = c7; EmitVertex();
             EndPrimitive();
 
