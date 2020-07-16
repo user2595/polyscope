@@ -287,6 +287,31 @@ PointCloudFrameQuantity* PointCloudFrameQuantity::setFrameColors(std::array<glm:
   requestRedraw();
   return this;
 }
+
+
+PointCloudFrameQuantity* PointCloudFrameQuantity::setFrameShowX(bool newShowX) {
+  showX = newShowX;
+  requestRedraw();
+  return this;
+}
+PointCloudFrameQuantity* PointCloudFrameQuantity::setFrameShowY(bool newShowY) {
+  showY = newShowY;
+  requestRedraw();
+  return this;
+}
+PointCloudFrameQuantity* PointCloudFrameQuantity::setFrameShowZ(bool newShowZ) {
+  showZ = newShowZ;
+  requestRedraw();
+  return this;
+}
+PointCloudFrameQuantity* PointCloudFrameQuantity::setFrameAxes(std::array<char, 3> newShow) {
+  showX = newShow[0];
+  showY = newShow[1];
+  showZ = newShow[2];
+  requestRedraw();
+  return this;
+}
+
 std::array<glm::vec3, 3> PointCloudFrameQuantity::getFrameColors() {
   return std::array<glm::vec3, 3>{frameColorX.get(), frameColorY.get(), frameColorZ.get()};
 }

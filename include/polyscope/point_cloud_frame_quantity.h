@@ -35,6 +35,11 @@ public:
   PointCloudFrameQuantity* setFrameRadius(double val, bool isRelative = true);
   double getFrameRadius();
 
+  PointCloudFrameQuantity* setFrameShowX(bool newShowX);
+  PointCloudFrameQuantity* setFrameShowY(bool newShowX);
+  PointCloudFrameQuantity* setFrameShowZ(bool newShowZ);
+  PointCloudFrameQuantity* setFrameAxes(std::array<char, 3> newShow);
+
   // The color of the frames
   PointCloudFrameQuantity* setFrameColors(std::array<glm::vec3, 3> color);
   std::array<glm::vec3, 3> getFrameColors();
