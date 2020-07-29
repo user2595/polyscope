@@ -41,7 +41,6 @@ void SurfaceScalarQuantity::writeToFile(std::string filename) {
 void SurfaceScalarQuantity::setProgramUniforms(render::ShaderProgram& program) {
   program.setUniform("u_rangeLow", vizRange.first);
   program.setUniform("u_rangeHigh", vizRange.second);
-  // program.setUniform("u_isoline", isoline);
 }
 
 SurfaceScalarQuantity* SurfaceScalarQuantity::resetMapRange() {
@@ -108,8 +107,6 @@ void SurfaceScalarQuantity::buildCustomUI() {
     } break;
     }
   }
-  ImGui::DragFloat("", &isoline, (dataRange.second - dataRange.first) / 100., dataRange.first, dataRange.second,
-                   "Isoline: %.3e");
 }
 
 void SurfaceScalarQuantity::geometryChanged() { program.reset(); }

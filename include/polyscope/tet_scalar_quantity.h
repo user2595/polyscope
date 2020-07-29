@@ -1,10 +1,9 @@
 #pragma once
 
 #include "polyscope/affine_remapper.h"
-#include "polyscope/gl/color_maps.h"
 #include "polyscope/histogram.h"
-#include "polyscope/quantity.h"
-#include "polyscope/structure.h"
+#include "polyscope/render/color_maps.h"
+#include "polyscope/render/engine.h"
 
 #include "tet_mesh.h"
 #include "tet_mesh_quantity.h"
@@ -15,35 +14,45 @@ namespace polyscope {
 class TetMesh;
 
 class TetScalarQuantity : public TetMeshQuantity {
-  public:
-    TetScalarQuantity(std::string name, TetMesh& mesh_, std::string definedOn,
-                      DataType dataType);
+public:
+  TetScalarQuantity(std::string name, TetMesh& mesh_, std::string definedOn, DataType dataType);
 
-    virtual void draw() override;
-    virtual void buildCustomUI() override;
-    virtual std::string niceName() override;
-    virtual void geometryChanged() override;
+  virtual void draw() override;
+  virtual void buildCustomUI() override;
+  virtual std::string niceName() override;
+  virtual void geometryChanged() override;
 
-    virtual void writeToFile(std::string filename = "");
+  virtual void writeToFile(std::string filename = "");
 
-    // === Members
-    const DataType dataType;
+  // === Members
+  const DataType dataType;
 
-  protected:
-    // Affine data maps and limits
-    void resetVizRange();
-    float vizRangeLow, vizRangeHigh;
-    float dataRangeHigh, dataRangeLow;
-    Histogram hist;
+  // === Get/set visualization parameters
 
-    // UI internals
-    gl::ColorMapID cMap;
-    const std::string definedOn;
-    std::unique_ptr<gl::GLProgram> program;
+  // The color map
+  TetScalarQuantity* setColorMap(std::string val);
+  std::string getColorMap();
 
-    // Helpers
-    virtual void createProgram() = 0;
-    void setProgramUniforms(gl::GLProgram& program);
+  // Data limits mapped in to colormap
+  TetScalarQuantity* setMapRange(std::pair<double, double> val);
+  std::pair<double, double> getMapRange();
+  TetScalarQuantity* resetMapRange(); // reset to full range
+
+protected:
+  // Affine data maps and limits
+  std::pair<float, float> vizRange;
+  std::pair<double, double> dataRange;
+  Histogram hist;
+
+
+  // UI internals
+  PersistentValue<std::string> cMap;
+  const std::string definedOn;
+  std::shared_ptr<render::ShaderProgram> program;
+
+  // Helpers
+  virtual void createProgram() = 0;
+  void setProgramUniforms(render::ShaderProgram& program);
 };
 
 // ========================================================
@@ -51,22 +60,21 @@ class TetScalarQuantity : public TetMeshQuantity {
 // ========================================================
 
 class TetVertexScalarQuantity : public TetScalarQuantity {
-  public:
-    TetVertexScalarQuantity(std::string name, std::vector<double> values_,
-                            TetMesh& mesh_,
-                            DataType dataType_ = DataType::STANDARD);
+public:
+  TetVertexScalarQuantity(std::string name, std::vector<double> values_, TetMesh& mesh_,
+                          DataType dataType_ = DataType::STANDARD);
 
-    virtual void createProgram() override;
+  virtual void createProgram() override;
 
-    void fillColorBuffers(gl::GLProgram& p);
+  void fillColorBuffers(render::ShaderProgram& p);
 
-    void draw() override;
+  void draw() override;
 
-    void buildVertexInfoGUI(size_t vInd) override;
-    virtual void writeToFile(std::string filename = "") override;
+  void buildVertexInfoGUI(size_t vInd) override;
+  virtual void writeToFile(std::string filename = "") override;
 
-    // === Members
-    std::vector<double> values;
+  // === Members
+  std::vector<double> values;
 };
 
 // ========================================================
@@ -74,19 +82,18 @@ class TetVertexScalarQuantity : public TetScalarQuantity {
 // ========================================================
 
 class TetFaceScalarQuantity : public TetScalarQuantity {
-  public:
-    TetFaceScalarQuantity(std::string name, std::vector<double> values_,
-                          TetMesh& mesh_,
-                          DataType dataType_ = DataType::STANDARD);
+public:
+  TetFaceScalarQuantity(std::string name, std::vector<double> values_, TetMesh& mesh_,
+                        DataType dataType_ = DataType::STANDARD);
 
-    virtual void createProgram() override;
+  virtual void createProgram() override;
 
-    void fillColorBuffers(gl::GLProgram& p);
+  void fillColorBuffers(render::ShaderProgram& p);
 
-    void buildFaceInfoGUI(size_t fInd) override;
+  void buildFaceInfoGUI(size_t fInd) override;
 
-    // === Members
-    std::vector<double> values;
+  // === Members
+  std::vector<double> values;
 };
 
 

@@ -40,7 +40,6 @@ protected:
   // Affine data maps and limits
   std::pair<float, float> vizRange;
   std::pair<double, double> dataRange;
-  float isoline;
   Histogram hist;
 
   // UI internals
