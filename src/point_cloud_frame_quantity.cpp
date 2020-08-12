@@ -68,9 +68,16 @@ void PointCloudFrameQuantity::draw() {
       programCube->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
     }
 
-    programCube->setUniform("u_baseColorX", frameColorX.get());
-    programCube->setUniform("u_baseColorY", frameColorY.get());
-    programCube->setUniform("u_baseColorZ", frameColorZ.get());
+    if (cross) {
+      programCube->setUniform("u_baseColorX", frameColorX.get());
+      programCube->setUniform("u_baseColorY", frameColorX.get());
+      programCube->setUniform("u_baseColorZ", frameColorX.get());
+    } else {
+      programCube->setUniform("u_baseColorX", frameColorX.get());
+      programCube->setUniform("u_baseColorY", frameColorY.get());
+      programCube->setUniform("u_baseColorZ", frameColorZ.get());
+    }
+
 
     programCube->draw();
   } else {
