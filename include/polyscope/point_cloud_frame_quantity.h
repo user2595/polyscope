@@ -70,6 +70,9 @@ private:
   std::shared_ptr<render::ShaderProgram> programX;
   std::shared_ptr<render::ShaderProgram> programY;
   std::shared_ptr<render::ShaderProgram> programZ;
+  std::shared_ptr<render::ShaderProgram> programXneg;
+  std::shared_ptr<render::ShaderProgram> programYneg;
+  std::shared_ptr<render::ShaderProgram> programZneg;
   std::shared_ptr<render::ShaderProgram> programCube;
 };
 

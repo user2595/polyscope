@@ -91,9 +91,20 @@ void PointCloudFrameQuantity::draw() {
     programZ->setUniform("u_radius", frameRadius.get().asAbsolute());
 
     if (cross) {
+      parent.setTransformUniforms(*programXneg);
+      parent.setTransformUniforms(*programYneg);
+      parent.setTransformUniforms(*programZneg);
+
+      programXneg->setUniform("u_radius", frameRadius.get().asAbsolute());
+      programYneg->setUniform("u_radius", frameRadius.get().asAbsolute());
+      programZneg->setUniform("u_radius", frameRadius.get().asAbsolute());
+
       programX->setUniform("u_baseColor", frameColorX.get());
       programY->setUniform("u_baseColor", frameColorX.get());
       programZ->setUniform("u_baseColor", frameColorX.get());
+      programXneg->setUniform("u_baseColor", frameColorX.get());
+      programYneg->setUniform("u_baseColor", frameColorX.get());
+      programZneg->setUniform("u_baseColor", frameColorX.get());
     } else {
       programX->setUniform("u_baseColor", frameColorX.get());
       programY->setUniform("u_baseColor", frameColorY.get());
@@ -104,10 +115,20 @@ void PointCloudFrameQuantity::draw() {
       programX->setUniform("u_lengthMult", 1.0);
       programY->setUniform("u_lengthMult", 1.0);
       programZ->setUniform("u_lengthMult", 1.0);
+      if (cross) {
+        programXneg->setUniform("u_lengthMult", 1.0);
+        programYneg->setUniform("u_lengthMult", 1.0);
+        programZneg->setUniform("u_lengthMult", 1.0);
+      }
     } else {
       programX->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
       programY->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
       programZ->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+      if (cross) {
+        programXneg->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+        programYneg->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+        programZneg->setUniform("u_lengthMult", frameLengthMult.get().asAbsolute());
+      }
     }
 
     glm::mat4 P = view::getCameraPerspectiveMatrix();
@@ -118,15 +139,30 @@ void PointCloudFrameQuantity::draw() {
     programX->setUniform("u_viewport", render::engine->getCurrentViewport());
     programY->setUniform("u_viewport", render::engine->getCurrentViewport());
     programZ->setUniform("u_viewport", render::engine->getCurrentViewport());
+    if (cross) {
+      programXneg->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+      programYneg->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+      programZneg->setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
+      programXneg->setUniform("u_viewport", render::engine->getCurrentViewport());
+      programYneg->setUniform("u_viewport", render::engine->getCurrentViewport());
+      programZneg->setUniform("u_viewport", render::engine->getCurrentViewport());
 
-    if (showX.get()) {
       programX->draw();
-    }
-    if (showY.get()) {
       programY->draw();
-    }
-    if (showZ.get()) {
       programZ->draw();
+      programXneg->draw();
+      programYneg->draw();
+      programZneg->draw();
+    } else {
+      if (showX.get()) {
+        programX->draw();
+      }
+      if (showY.get()) {
+        programY->draw();
+      }
+      if (showZ.get()) {
+        programZ->draw();
+      }
     }
   }
 }
@@ -138,6 +174,19 @@ void PointCloudFrameQuantity::createProgram() {
       {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER}, DrawMode::Points);
   programZ = render::engine->generateShaderProgram(
       {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER}, DrawMode::Points);
+  if (cross) {
+    programXneg = render::engine->generateShaderProgram(
+        {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER},
+        DrawMode::Points);
+    programYneg = render::engine->generateShaderProgram(
+        {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER},
+        DrawMode::Points);
+    programZneg = render::engine->generateShaderProgram(
+        {render::PASSTHRU_VECTOR_VERT_SHADER, render::VECTOR_GEOM_SHADER, render::VECTOR_FRAG_SHADER},
+        DrawMode::Points);
+  }
+
+
   programCube = render::engine->generateShaderProgram(
       {render::PASSTHRU_CUBE_VERT_SHADER, render::CUBE_GEOM_SHADER, render::CUBE_FRAG_SHADER}, DrawMode::Points);
 
@@ -157,6 +206,23 @@ void PointCloudFrameQuantity::createProgram() {
   programX->setAttribute("a_position", parent.points);
   programY->setAttribute("a_position", parent.points);
   programZ->setAttribute("a_position", parent.points);
+  if (cross) {
+    std::vector<glm::vec3> mappedFrames1neg;
+    std::vector<glm::vec3> mappedFrames2neg;
+    std::vector<glm::vec3> mappedFrames3neg;
+    for (std::array<glm::vec3, 3> f : frames) {
+      mappedFrames1neg.push_back(mapper.map(-1.f * f[0]));
+      mappedFrames2neg.push_back(mapper.map(-1.f * f[1]));
+      mappedFrames3neg.push_back(mapper.map(-1.f * f[2]));
+    }
+
+    programXneg->setAttribute("a_vector", mappedFrames1neg);
+    programYneg->setAttribute("a_vector", mappedFrames2neg);
+    programZneg->setAttribute("a_vector", mappedFrames3neg);
+    programXneg->setAttribute("a_position", parent.points);
+    programYneg->setAttribute("a_position", parent.points);
+    programZneg->setAttribute("a_position", parent.points);
+  }
 
   programCube->setAttribute("a_vector_x", mappedFrames1);
   programCube->setAttribute("a_vector_y", mappedFrames2);
@@ -166,6 +232,11 @@ void PointCloudFrameQuantity::createProgram() {
   render::engine->setMaterial(*programX, getMaterial());
   render::engine->setMaterial(*programY, getMaterial());
   render::engine->setMaterial(*programZ, getMaterial());
+  if (cross) {
+    render::engine->setMaterial(*programXneg, getMaterial());
+    render::engine->setMaterial(*programYneg, getMaterial());
+    render::engine->setMaterial(*programZneg, getMaterial());
+  }
   render::engine->setMaterial(*programCube, getMaterial());
 }
 
