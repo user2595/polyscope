@@ -85,10 +85,10 @@ void SurfaceProjectiveParameterizationQuantity::setProgramUniforms(render::Shade
   // Interpretatin of modulo parameter depends on data type
   switch (coordsType) {
   case ParamCoordsType::UNIT:
-    program.setUniform("u_modLen", getCheckerSize());
+    program.setUniform("u_modLen", exp(getCheckerSize()));
     break;
   case ParamCoordsType::WORLD:
-    program.setUniform("u_modLen", getCheckerSize() * state::lengthScale);
+    program.setUniform("u_modLen", exp(getCheckerSize()) * state::lengthScale);
     break;
   }
 
@@ -149,7 +149,8 @@ void SurfaceProjectiveParameterizationQuantity::buildCustomUI() {
 
 
   // Modulo stripey width
-  if (ImGui::DragFloat("period", &checkerSize.get(), .001, 0.0001, 1.0, "%.4f", 2.0)) {
+  // if (ImGui::DragFloat("period", &checkerSize.get(), .001, 0.00001, 10.0, "%.4f", 2.0)) {
+  if (ImGui::DragFloat("period", &checkerSize.get(), .1, -100., 5., "%.4f", 2.0)) {
     setCheckerSize(getCheckerSize());
   }
 
@@ -269,7 +270,6 @@ void SurfaceCornerProjectiveParameterizationQuantity::fillPositionBuffers(render
     // implicitly triangulate from root
     size_t vRoot = face[0];
     for (size_t j = 1; (j + 1) < D; j++) {
-
       glm::vec3 vRootVal, vBVal, vCVal;
       vRootVal = coords[cornerCounter];
       vBVal = coords[cornerCounter + j];

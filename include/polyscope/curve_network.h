@@ -127,7 +127,9 @@ public:
   // set the radius of the points
   CurveNetwork* setRadius(float newVal, bool isRelative = true);
   float getRadius();
-  
+  CurveNetwork* setPointRadius(float newVal, bool isRelative = true);
+  float getPointRadius();
+
   // Material
   CurveNetwork* setMaterial(std::string name);
   std::string getMaterial();
@@ -137,6 +139,8 @@ private:
   PersistentValue<glm::vec3> color;
   PersistentValue<ScaledValue<float>> radius;
   PersistentValue<std::string> material;
+  PersistentValue<bool> separatePointRadius;
+  PersistentValue<ScaledValue<float>> pointRadius;
 
 
   // Drawing related things
@@ -152,7 +156,7 @@ private:
   void prepare();
   void preparePick();
 
-	void geometryChanged();
+  void geometryChanged();
 
   // Pick helpers
   void buildNodePickUI(size_t nodeInd);

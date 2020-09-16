@@ -25,6 +25,7 @@ void SurfaceNormalQuantity::draw() {
 
   // Set uniforms
   parent.setTransformUniforms(*program);
+  program->setUniform("u_basecolor", parent.getSurfaceColor());
   setProgramUniforms(*program);
 
 
@@ -74,7 +75,7 @@ void SurfaceVertexNormalQuantity::createProgram() {
       {render::PLAIN_SURFACE_VERT_SHADER, render::PLAIN_SURFACE_FRAG_SHADER}, DrawMode::Triangles);
 
   // Fill geometry buffers
-  parent.fillGeometryBuffers(*program);
+  fillGeometryBuffers(*program);
 
   render::engine->setMaterial(*program, parent.getMaterial());
 }

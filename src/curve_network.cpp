@@ -23,7 +23,9 @@ const std::string CurveNetwork::structureTypeName = "Curve Network";
 CurveNetwork::CurveNetwork(std::string name, std::vector<glm::vec3> nodes_, std::vector<std::array<size_t, 2>> edges_)
     : QuantityStructure<CurveNetwork>(name, typeName()), nodes(std::move(nodes_)), edges(std::move(edges_)),
       color(uniquePrefix() + "#color", getNextUniqueColor()), radius(uniquePrefix() + "#radius", relativeValue(0.005)),
-      material(uniquePrefix() + "#material", "clay")
+      material(uniquePrefix() + "#material", "clay"),
+      separatePointRadius(uniquePrefix() + "#separatePointRadius", false),
+      pointRadius(uniquePrefix() + "#pointRadius", relativeValue(0.005))
 
 {
 
@@ -55,7 +57,7 @@ void CurveNetwork::setCurveNetworkNodeUniforms(render::ShaderProgram& p) {
   glm::mat4 Pinv = glm::inverse(P);
   p.setUniform("u_invProjMatrix", glm::value_ptr(Pinv));
   p.setUniform("u_viewport", render::engine->getCurrentViewport());
-  p.setUniform("u_pointRadius", getRadius());
+  p.setUniform("u_pointRadius", getPointRadius());
 }
 
 void CurveNetwork::setCurveNetworkEdgeUniforms(render::ShaderProgram& p) {
@@ -311,6 +313,13 @@ void CurveNetwork::buildCustomUI() {
     radius.manuallyChanged();
     requestRedraw();
   }
+  ImGui::Checkbox("Separate Point Radius", &separatePointRadius.get());
+  if (separatePointRadius.get()) {
+    if (ImGui::SliderFloat("Point Radius", pointRadius.get().getValuePtr(), 0.0, .1, "%.5f", 3.)) {
+      pointRadius.manuallyChanged();
+      requestRedraw();
+    }
+  }
   ImGui::PopItemWidth();
 }
 
@@ -364,6 +373,19 @@ CurveNetwork* CurveNetwork::setRadius(float newVal, bool isRelative) {
   return this;
 }
 float CurveNetwork::getRadius() { return radius.get().asAbsolute(); }
+
+CurveNetwork* CurveNetwork::setPointRadius(float newVal, bool isRelative) {
+  pointRadius = ScaledValue<float>(newVal, isRelative);
+  polyscope::requestRedraw();
+  return this;
+}
+float CurveNetwork::getPointRadius() {
+  if (separatePointRadius.get()) {
+    return pointRadius.get().asAbsolute();
+  } else {
+    return radius.get().asAbsolute();
+  }
+}
 
 CurveNetwork* CurveNetwork::setMaterial(std::string m) {
   material = m;
