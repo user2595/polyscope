@@ -20,6 +20,7 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
   for (size_t i = 0; i < values.size(); ++i) {
     scaleFactors.emplace_back(0);
   }
+  rot = glm::eulerAngleYXZ(alpha, beta, gamma);
 }
 
 SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
@@ -28,6 +29,7 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
   for (size_t i = 0; i < values.size(); ++i) {
     scaleFactors.emplace_back((float)scaleFactors_[i]);
   }
+  rot = glm::eulerAngleYXZ(alpha, beta, gamma);
 }
 
 SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_, std::vector<glm::vec3> values_,
@@ -36,6 +38,7 @@ SurfaceEarthQuantity::SurfaceEarthQuantity(std::string name, SurfaceMesh& mesh_,
   for (size_t i = 0; i < values.size(); ++i) {
     scaleFactors.emplace_back((float)scaleFactors_[i]);
   }
+  rot = glm::eulerAngleYXZ(alpha, beta, gamma);
 }
 
 void SurfaceEarthQuantity::draw() {
@@ -48,6 +51,7 @@ void SurfaceEarthQuantity::draw() {
   // Set uniforms
   parent.setTransformUniforms(*program);
   program->setUniform("u_projectiveInterpolate", (int)projectiveInterpolate);
+  program->setUniform("u_rot", glm::value_ptr(rot));
 
   program->draw();
 }
@@ -75,7 +79,22 @@ void SurfaceEarthQuantity::setProgramTextures(render::ShaderProgram& program) {
   program.setTextureCube("t_earth", images, w, false, false, false);
 }
 
-void SurfaceEarthQuantity::buildCustomUI() { ImGui::Checkbox("Projective Interpolate", &projectiveInterpolate); }
+void SurfaceEarthQuantity::buildCustomUI() {
+  ImGui::Checkbox("Projective Interpolate", &projectiveInterpolate);
+
+  bool updated = false;
+  if (ImGui::SliderFloat("alpha", &alpha, 0.f, 2 * M_PI, "%.3f")) updated = true;
+  if (ImGui::SliderFloat("beta", &beta, 0.f, 2 * M_PI, "%.3f")) updated = true;
+  if (ImGui::SliderFloat("gamma", &gamma, 0.f, 2 * M_PI, "%.3f")) updated = true;
+
+  if (updated) {
+    rot = glm::eulerAngleYXZ(alpha, beta, gamma);
+    program->setUniform("u_rot", glm::value_ptr(rot));
+  }
+
+  // cout << "rot: " << endl;
+  // cout << glm::to_string(rot) << endl;
+}
 
 void SurfaceEarthQuantity::geometryChanged() { program.reset(); }
 

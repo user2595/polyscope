@@ -5,6 +5,9 @@
 #include "polyscope/histogram.h"
 #include "polyscope/surface_mesh.h"
 
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtx/string_cast.hpp>
+
 namespace polyscope {
 
 class SurfaceEarthQuantity : public SurfaceMeshQuantity {
@@ -36,6 +39,10 @@ public:
 protected:
   // UI internals
   std::shared_ptr<render::ShaderProgram> program;
+  float alpha = 0;
+  float beta = 0;
+  float gamma = 0;
+  glm::mat4 rot;
 
   // Helpers
   void setProgramTextures(render::ShaderProgram& program);

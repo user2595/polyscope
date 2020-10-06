@@ -1207,6 +1207,7 @@ const ShaderStageSpecification EARTH_SURFACE_FRAG_SHADER = {
     // uniforms
     {
      {"u_projectiveInterpolate", DataType::Int},
+     {"u_rot", DataType::Matrix44Float},
     },
 
     // attributes
@@ -1230,6 +1231,7 @@ const ShaderStageSpecification EARTH_SURFACE_FRAG_SHADER = {
       uniform sampler2D t_mat_b;
       uniform sampler2D t_mat_k;
       uniform int u_projectiveInterpolate;
+      uniform mat4 u_rot;
       in vec3 scaleFactor;
       in vec3 baryCoord;
       in vec3 Normal;
@@ -1267,6 +1269,8 @@ const ShaderStageSpecification EARTH_SURFACE_FRAG_SHADER = {
           projectiveCoord =
             b0 * pos0 + b1 * pos1 + b2 * pos2;
         }
+
+        projectiveCoord = mat3(u_rot) * projectiveCoord;
         vec3 color = texture(t_earth, projectiveCoord).rgb;
         vec3 shadedColor = lightSurfaceMat(Normal, color, t_mat_r, t_mat_g, t_mat_b, t_mat_k);
         outputF = vec4(shadedColor, 1.);
