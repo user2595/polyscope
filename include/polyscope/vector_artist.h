@@ -41,7 +41,7 @@ public:
   void setMaterial(std::string name);
   std::string getMaterial();
 
-private:
+  // private:
   // Data
   Structure& parentStructure;
   const std::string uniqueName;
