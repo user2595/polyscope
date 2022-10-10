@@ -1531,7 +1531,9 @@ void GLShaderProgram::validateData() {
   for (GLShaderAttribute a : attributes) {
     if (a.location == -1) continue;
     if (a.dataSize < 0) {
-      throw std::invalid_argument("Attribute " + a.name + " has not been set");
+      std::cout << "WARNING: Attribute " + a.name + " has not been set" << std::endl;
+      continue;
+      // throw std::invalid_argument("Attribute " + a.name + " has not been set");
     }
     if (attributeSize == -1) { // first one we've seen
       attributeSize = a.dataSize / a.arrayCount;

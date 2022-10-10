@@ -12,8 +12,8 @@ namespace polyscope {
 
 class VolumeMeshScalarQuantity : public VolumeMeshQuantity, public ScalarQuantity<VolumeMeshScalarQuantity> {
 public:
-  VolumeMeshScalarQuantity(std::string name, VolumeMesh& mesh_, std::string definedOn, const std::vector<double>& values_,
-                        DataType dataType);
+  VolumeMeshScalarQuantity(std::string name, VolumeMesh& mesh_, std::string definedOn,
+                           const std::vector<double>& values_, DataType dataType);
 
   virtual void draw() override;
   virtual void buildCustomUI() override;
@@ -24,9 +24,12 @@ protected:
   const std::string definedOn;
   std::shared_ptr<render::ShaderProgram> program;
   std::shared_ptr<render::ShaderProgram> sliceProgram;
+  VolumeMeshScalarQuantity* levelSetVisibleQuantity;
 
   // Helpers
   virtual void createProgram() = 0;
+
+  friend class VolumeMeshVertexScalarQuantity;
 };
 
 // ========================================================
@@ -36,19 +39,22 @@ protected:
 class VolumeMeshVertexScalarQuantity : public VolumeMeshScalarQuantity {
 public:
   VolumeMeshVertexScalarQuantity(std::string name, const std::vector<double>& values_, VolumeMesh& mesh_,
-                              DataType dataType_ = DataType::STANDARD);
+                                 DataType dataType_ = DataType::STANDARD);
 
   virtual void createProgram() override;
   virtual std::shared_ptr<render::ShaderProgram> createSliceProgram() override;
   virtual void draw() override;
-  virtual void drawSlice(polyscope::SlicePlane *sp) override;
+  virtual void drawSlice(polyscope::SlicePlane* sp) override;
 
+  // Flat or smooth shading
+  VolumeMeshVertexScalarQuantity* setLevelSetSmoothShade(bool isSmooth);
+  bool isLevelSetSmoothShade();
 
   void setLevelSetValue(float f);
   void setEnabledLevelSet(bool v);
   void setLevelSetVisibleQuantity(std::string name);
-  void setLevelSetUniforms(render::ShaderProgram &p);
-  void fillLevelSetData(render::ShaderProgram &p);
+  void setLevelSetUniforms(render::ShaderProgram& p);
+  void fillLevelSetData(render::ShaderProgram& p);
   std::shared_ptr<render::ShaderProgram> levelSetProgram;
 
   void fillColorBuffers(render::ShaderProgram& p);
@@ -61,9 +67,7 @@ public:
 
   float levelSetValue;
   bool isDrawingLevelSet;
-  VolumeMeshVertexScalarQuantity* showQuantity;
-
-
+  PersistentValue<bool> levelSetSmoothShade;
 };
 
 
@@ -74,7 +78,7 @@ public:
 class VolumeMeshCellScalarQuantity : public VolumeMeshScalarQuantity {
 public:
   VolumeMeshCellScalarQuantity(std::string name, const std::vector<double>& values_, VolumeMesh& mesh_,
-                            DataType dataType_ = DataType::STANDARD);
+                               DataType dataType_ = DataType::STANDARD);
 
   virtual void createProgram() override;
 

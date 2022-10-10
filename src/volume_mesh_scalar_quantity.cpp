@@ -10,7 +10,8 @@ namespace polyscope {
 
 VolumeMeshScalarQuantity::VolumeMeshScalarQuantity(std::string name, VolumeMesh& mesh_, std::string definedOn_,
                                                    const std::vector<double>& values_, DataType dataType_)
-    : VolumeMeshQuantity(name, mesh_, true), ScalarQuantity(*this, values_, dataType_), definedOn(definedOn_) {}
+    : VolumeMeshQuantity(name, mesh_, true), ScalarQuantity(*this, values_, dataType_), definedOn(definedOn_),
+      levelSetVisibleQuantity(this) {}
 
 void VolumeMeshScalarQuantity::draw() {
   if (!isEnabled()) return;
@@ -22,7 +23,7 @@ void VolumeMeshScalarQuantity::draw() {
   // Set uniforms
   parent.setStructureUniforms(*program);
   parent.setVolumeMeshUniforms(*program);
-  setScalarUniforms(*program);
+  levelSetVisibleQuantity->setScalarUniforms(*program);
 
   program->draw();
 }
@@ -60,7 +61,7 @@ std::string VolumeMeshScalarQuantity::niceName() { return name + " (" + definedO
 VolumeMeshVertexScalarQuantity::VolumeMeshVertexScalarQuantity(std::string name, const std::vector<double>& values_,
                                                                VolumeMesh& mesh_, DataType dataType_)
     : VolumeMeshScalarQuantity(name, mesh_, "vertex", values_, dataType_), levelSetValue(0), isDrawingLevelSet(false),
-      showQuantity(this)
+      levelSetSmoothShade(uniquePrefix() + "levelSetSmoothShade", false)
 
 {
   hist.buildHistogram(values, parent.vertexAreas); // rebuild to incorporate weights
@@ -103,11 +104,68 @@ void VolumeMeshVertexScalarQuantity::fillLevelSetData(render::ShaderProgram& p) 
   p.setAttribute("a_slice_2", slice2);
   p.setAttribute("a_slice_3", slice3);
   p.setAttribute("a_slice_4", slice4);
+
+  std::vector<glm::vec3> vertexNormals;
+  vertexNormals.resize(parent.nVertices());
+  const glm::vec3 zero{0., 0., 0.};
+  std::fill(vertexNormals.begin(), vertexNormals.end(), zero);
+  if (levelSetSmoothShade.get()) {
+    auto vertices = parent.vertices;
+    for (size_t i = 0; i < parent.nTets(); i++) {
+      glm::vec3 p0 = vertices[parent.tets[i][0]];
+      glm::vec3 p1 = vertices[parent.tets[i][1]];
+      glm::vec3 p2 = vertices[parent.tets[i][2]];
+      glm::vec3 p3 = vertices[parent.tets[i][3]];
+
+      float volume = glm::determinant(glm::mat3(p1 - p0, p2 - p0, p3 - p0));
+
+      // compute gradient of d to orient our sliced faces
+      glm::vec3 vN0 = glm::cross(p2 - p1, p3 - p1);
+      glm::vec3 vN1 = glm::cross(p3 - p0, p2 - p0);
+      glm::vec3 vN2 = glm::cross(p1 - p0, p3 - p0);
+      glm::vec3 vN3 = glm::cross(p0 - p1, p2 - p1);
+      float v0 = values[parent.tets[i][0]];
+      float v1 = values[parent.tets[i][1]];
+      float v2 = values[parent.tets[i][2]];
+      float v3 = values[parent.tets[i][3]];
+
+      glm::vec3 gradDir = glm::normalize(v0 * vN0 + v1 * vN1 + v2 * vN2 + v3 * vN3);
+
+      vertexNormals[parent.tets[i][0]] += gradDir * volume;
+      vertexNormals[parent.tets[i][1]] += gradDir * volume;
+      vertexNormals[parent.tets[i][2]] += gradDir * volume;
+      vertexNormals[parent.tets[i][3]] += gradDir * volume;
+    }
+    for (size_t i = 0; i < parent.nVertices(); i++) {
+      vertexNormals[i] = glm::normalize(vertexNormals[i]);
+    }
+  }
+
+  std::vector<glm::vec3> normal1;
+  std::vector<glm::vec3> normal2;
+  std::vector<glm::vec3> normal3;
+  std::vector<glm::vec3> normal4;
+
+  normal1.resize(tetCount);
+  normal2.resize(tetCount);
+  normal3.resize(tetCount);
+  normal4.resize(tetCount);
+  for (size_t i = 0; i < parent.nTets(); i++) {
+    normal1[i] = vertexNormals[parent.tets[i][0]];
+    normal2[i] = vertexNormals[parent.tets[i][1]];
+    normal3[i] = vertexNormals[parent.tets[i][2]];
+    normal4[i] = vertexNormals[parent.tets[i][3]];
+  }
+  p.setAttribute("a_normal_1", normal1);
+  p.setAttribute("a_normal_2", normal2);
+  p.setAttribute("a_normal_3", normal3);
+  p.setAttribute("a_normal_4", normal4);
 }
 
 void VolumeMeshVertexScalarQuantity::setLevelSetUniforms(render::ShaderProgram& p) {
   p.setUniform("u_sliceVector", glm::vec3(1, 0, 0));
   p.setUniform("u_slicePoint", levelSetValue);
+  p.setUniform("u_shadeSmooth", (float)levelSetSmoothShade.get());
 }
 
 void VolumeMeshVertexScalarQuantity::draw() {
@@ -129,10 +187,19 @@ void VolumeMeshVertexScalarQuantity::draw() {
   // Set uniforms
   parent.setStructureUniforms(*programToDraw);
   parent.setVolumeMeshUniforms(*programToDraw);
-  setScalarUniforms(*programToDraw);
+  levelSetVisibleQuantity->setScalarUniforms(*programToDraw);
+  // programToDraw->setTextureFromColormap("t_colormap", levelSetVisibleQuantity->cMap.get());
 
   programToDraw->draw();
 }
+
+VolumeMeshVertexScalarQuantity* VolumeMeshVertexScalarQuantity::setLevelSetSmoothShade(bool isSmooth) {
+  levelSetSmoothShade = isSmooth;
+  refresh();
+  requestRedraw();
+  return this;
+}
+bool VolumeMeshVertexScalarQuantity::isLevelSetSmoothShade() { return levelSetSmoothShade.get(); }
 
 void VolumeMeshVertexScalarQuantity::setLevelSetValue(float f) { levelSetValue = f; }
 
@@ -170,6 +237,7 @@ void VolumeMeshVertexScalarQuantity::setLevelSetVisibleQuantity(std::string name
   VolumeMeshQuantity* vmq = pair->second.get();
   VolumeMeshVertexScalarQuantity* q = dynamic_cast<VolumeMeshVertexScalarQuantity*>(vmq);
   if (q == nullptr) {
+    levelSetVisibleQuantity = this;
     return;
   }
   levelSetProgram = render::engine->requestShader(
@@ -180,8 +248,9 @@ void VolumeMeshVertexScalarQuantity::setLevelSetVisibleQuantity(std::string name
   q->fillSliceColorBuffers(*levelSetProgram);
   render::engine->setMaterial(*levelSetProgram, parent.getMaterial());
   fillLevelSetData(*levelSetProgram);
-  setLevelSetUniforms(*levelSetProgram);
-  showQuantity = q;
+  q->setLevelSetUniforms(*levelSetProgram);
+  q->setScalarUniforms(*levelSetProgram);
+  levelSetVisibleQuantity = q;
 }
 
 void VolumeMeshVertexScalarQuantity::buildCustomUI() {
@@ -190,6 +259,10 @@ void VolumeMeshVertexScalarQuantity::buildCustomUI() {
     setEnabledLevelSet(isDrawingLevelSet);
   }
   if (isDrawingLevelSet) {
+    { // Flat shading or smooth shading?
+      ImGui::SameLine();
+      if (ImGui::Checkbox("Smooth", &levelSetSmoothShade.get())) setLevelSetSmoothShade(levelSetSmoothShade.get());
+    }
     ImGui::DragFloat("", &levelSetValue, 0.01f, (float)hist.colormapRange.first, (float)hist.colormapRange.second);
     if (ImGui::BeginMenu("Show Quantity")) {
       std::map<std::string, std::unique_ptr<polyscope::VolumeMeshQuantity>>::iterator it;
@@ -197,7 +270,8 @@ void VolumeMeshVertexScalarQuantity::buildCustomUI() {
         std::string quantityName = it->first;
         VolumeMeshQuantity* vmq = it->second.get();
         VolumeMeshVertexScalarQuantity* vmvsq = dynamic_cast<VolumeMeshVertexScalarQuantity*>(vmq);
-        if (vmvsq != nullptr && ImGui::MenuItem(quantityName.c_str(), NULL, showQuantity == it->second.get())) {
+        if (vmvsq != nullptr &&
+            ImGui::MenuItem(quantityName.c_str(), NULL, levelSetVisibleQuantity == it->second.get())) {
           setLevelSetVisibleQuantity(quantityName);
         }
       }

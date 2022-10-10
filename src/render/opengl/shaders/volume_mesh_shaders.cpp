@@ -21,6 +21,10 @@ const ShaderStageSpecification SLICE_TETS_VERT_SHADER = {
         {"a_slice_3", DataType::Vector3Float},
         {"a_point_4", DataType::Vector3Float},
         {"a_slice_4", DataType::Vector3Float},
+        {"a_normal_1", DataType::Vector3Float},
+        {"a_normal_2", DataType::Vector3Float},
+        {"a_normal_3", DataType::Vector3Float},
+        {"a_normal_4", DataType::Vector3Float},
     },
 
     {}, // textures
@@ -38,6 +42,10 @@ const ShaderStageSpecification SLICE_TETS_VERT_SHADER = {
         in vec3 a_slice_2;
         in vec3 a_slice_3;
         in vec3 a_slice_4;
+        in vec3 a_normal_1;
+        in vec3 a_normal_2;
+        in vec3 a_normal_3;
+        in vec3 a_normal_4;
         out vec3 point_1;
         out vec3 point_2;
         out vec3 point_3;
@@ -46,6 +54,10 @@ const ShaderStageSpecification SLICE_TETS_VERT_SHADER = {
         out vec3 slice_2;
         out vec3 slice_3;
         out vec3 slice_4;
+        out vec3 normal_1;
+        out vec3 normal_2;
+        out vec3 normal_3;
+        out vec3 normal_4;
 
         void main()
         {
@@ -57,6 +69,10 @@ const ShaderStageSpecification SLICE_TETS_VERT_SHADER = {
             slice_2 = a_slice_2;
             slice_3 = a_slice_3;
             slice_4 = a_slice_4;
+            normal_1 = a_normal_1;
+            normal_2 = a_normal_2;
+            normal_3 = a_normal_3;
+            normal_4 = a_normal_4;
             ${ VERT_ASSIGNMENTS }$
         }
 )"};
@@ -72,6 +88,7 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
         {"u_projMatrix", DataType::Matrix44Float},
         {"u_slicePoint", DataType::Float},
         {"u_sliceVector", DataType::Vector3Float},
+        {"u_shadeSmooth", DataType::Float},
     },
 
     // attributes
@@ -89,6 +106,7 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
         uniform mat4 u_projMatrix;
         uniform float u_slicePoint;
         uniform vec3 u_sliceVector;
+        uniform float u_shadeSmooth;
         in vec3 point_1[];
         in vec3 point_2[];
         in vec3 point_3[];
@@ -97,6 +115,10 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
         in vec3 slice_2[];
         in vec3 slice_3[];
         in vec3 slice_4[];
+        in vec3 normal_1[];
+        in vec3 normal_2[];
+        in vec3 normal_3[];
+        in vec3 normal_4[];
         out vec3 a_barycoordToFrag;
         out vec3 a_normalToFrag;
         ${ GEOM_DECLARATIONS }$
@@ -105,13 +127,14 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
 
             vec3 s[4] = vec3[](slice_1[0], slice_2[0], slice_3[0], slice_4[0]);
             vec3 p[4] = vec3[](point_1[0], point_2[0], point_3[0], point_4[0]);
+            vec3 vn[4] = vec3[](normal_1[0], normal_2[0], normal_3[0], normal_4[0]);
             ${ GEOM_INIT_DECLARATIONS }$
             int ordering[4] = int[](0, 1, 2, 3);
             
             float d[4]; 
             for (int i = 0; i < 4; i++ ) d[i] = dot(u_sliceVector, s[i]) - u_slicePoint;
 
-            vec3 q[4];
+            vec3 q[4], qn[4];
             int n = 0;
             for( int i = 0; i < 4; i++ ) {
                 for( int j = i+1; j < 4; j++ ) {
@@ -119,6 +142,7 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
                         float t = (0-d[i])/(d[j]-d[i]);
                         ${ GEOM_INTERPOLATE }$
                         q[n] = ( (1.-t)*p[i] + t*p[j] );
+                        qn[n] = normalize( (1.-t)*vn[i] + t*vn[j] );
                         n++;
                     }
                 }
@@ -160,7 +184,8 @@ const ShaderStageSpecification SLICE_TETS_GEOM_SHADER = {
             // Emit the vertices as a triangle strip
             mat4 toScreen = u_projMatrix * u_modelView;
             for (int i = 0; i < n; i++){
-                a_normalToFrag = vec3(toScreen * vec4(cross12, 0.0));
+                vec3 normal = u_shadeSmooth * qn[i] + (1-u_shadeSmooth) * cross12;
+                a_normalToFrag = vec3(toScreen * vec4(normal, 0.0));
                 a_barycoordToFrag = vec3(0, 0, 0);
                 a_barycoordToFrag[i % 3] = 1.0;
                 ${ GEOM_ASSIGNMENTS }$
