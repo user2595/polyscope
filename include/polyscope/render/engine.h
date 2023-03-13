@@ -407,6 +407,8 @@ public:
   std::shared_ptr<ShaderProgram> renderTexturePlain, renderTextureDot3, renderTextureMap3, renderTextureSphereBG;
   std::shared_ptr<ShaderProgram> compositePeel, mapLight, copyDepth;
 
+  virtual void registerShaderRule(const std::string& name, const ShaderReplacementRule& rule) = 0;
+
   // Manage transparency and culling
   void setTransparencyMode(TransparencyMode newMode);
   TransparencyMode getTransparencyMode();

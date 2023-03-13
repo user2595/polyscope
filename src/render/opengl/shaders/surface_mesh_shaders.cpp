@@ -73,6 +73,8 @@ R"(
         in vec3 a_barycoordToFrag;
         layout(location = 0) out vec4 outputF;
 
+        ${ FRAG_FUNCTIONS }$
+
         ${ FRAG_DECLARATIONS }$
 
         void main()

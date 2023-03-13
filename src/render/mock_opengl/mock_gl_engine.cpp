@@ -1357,6 +1357,10 @@ void MockGLEngine::setFrontFaceCCW(bool newVal) {
   frontFaceCCW = newVal;
 }
 
+void MockGLEngine::registerShaderRule(const std::string& name, const ShaderReplacementRule& rule) {
+  registeredShaderRules.insert({name, rule});
+}
+
 void MockGLEngine::populateDefaultShadersAndRules() {
   using namespace backend_openGL3_glfw;
 

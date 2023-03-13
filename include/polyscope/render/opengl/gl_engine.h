@@ -309,7 +309,7 @@ public:
 
   // Add a shader programs/rules so that they can be requested above
   void registerShaderProgram(const std::string& name, const std::vector<ShaderStageSpecification>& stages);
-  void registerShaderRule(const std::string& name, const ShaderReplacementRule& rule);
+  void registerShaderRule(const std::string& name, const ShaderReplacementRule& rule) override;
 
   // Transparency
   virtual void applyTransparencySettings() override;
