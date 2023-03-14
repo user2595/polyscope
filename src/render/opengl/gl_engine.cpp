@@ -696,7 +696,16 @@ void GLShaderProgram::compileGLProgram(const std::vector<ShaderStageSpecificatio
       checkGLError();
     } catch (...) {
       std::cout << "GLError() after shader compilation! Program text:" << std::endl;
-      std::cout << s.src.c_str() << std::endl;
+      // std::cout << s.src.c_str() << std::endl;
+
+      // process shader line-by-line to print line numbers:
+      std::stringstream ss(s.src);
+      std::string line;
+      size_t lineNo = 0;
+      while (std::getline(ss, line, '\n')) {
+        std::cout << std::setw(4) << lineNo << ": " << line << std::endl;
+        lineNo++;
+      }
       throw;
     }
 
