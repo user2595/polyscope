@@ -22,6 +22,23 @@ public:
   virtual void buildCustomUI() override;
   virtual std::string niceName() override;
   virtual void refresh() override;
+  virtual void geometryChanged() override;
+
+  virtual void writeToFile(std::string filename = "");
+
+  // === Members
+  const DataType dataType;
+
+  // === Get/set visualization parameters
+
+  // The color map
+  SurfaceScalarQuantity* setColorMap(std::string val);
+  std::string getColorMap();
+
+  // Data limits mapped in to colormap
+  SurfaceScalarQuantity* setMapRange(std::pair<double, double> val);
+  std::pair<double, double> getMapRange();
+  SurfaceScalarQuantity* resetMapRange(); // reset to full range
 
 protected:
   const std::string definedOn;

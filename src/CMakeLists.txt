@@ -19,6 +19,7 @@ if("${POLYSCOPE_BACKEND_OPENGL3_GLFW}")
   message("Polyscope backend openGL3_glfw enabled")
   
   list (APPEND BACKEND_SRCS
+<<<<<<< HEAD
     render/opengl/gl_engine.cpp  
     render/opengl/shaders/texture_draw_shaders.cpp  
     render/opengl/shaders/lighting_shaders.cpp  
@@ -34,6 +35,20 @@ if("${POLYSCOPE_BACKEND_OPENGL3_GLFW}")
     render/opengl/shaders/rules.cpp  
     render/opengl/shaders/common.cpp  
   )
+=======
+		render/opengl/gl_engine.cpp  
+		render/opengl/shaders/texture_draw_shaders.cpp  
+		render/opengl/shaders/lighting_shaders.cpp  
+		render/opengl/shaders/ground_plane_shaders.cpp  
+		render/opengl/shaders/histogram_shaders.cpp  
+		render/opengl/shaders/surface_mesh_shaders.cpp  
+		render/opengl/shaders/vector_shaders.cpp  
+		render/opengl/shaders/cube_shaders.cpp  
+		render/opengl/shaders/sphere_shaders.cpp  
+		render/opengl/shaders/ribbon_shaders.cpp  
+		render/opengl/shaders/cylinder_shaders.cpp  
+	)
+>>>>>>> origin/tetMesh
 
   list(APPEND BACKEND_HEADERS
     ${INCLUDE_ROOT}render/opengl/gl_engine.h
@@ -77,6 +92,7 @@ if("${POLYSCOPE_BACKEND_OPENGL_MOCK}")
   message("Polyscope backend openGL_mock enabled")
   
   list (APPEND BACKEND_SRCS
+<<<<<<< HEAD
     render/mock_opengl/mock_gl_engine.cpp  
     render/opengl/shaders/texture_draw_shaders.cpp  
     render/opengl/shaders/lighting_shaders.cpp  
@@ -92,6 +108,20 @@ if("${POLYSCOPE_BACKEND_OPENGL_MOCK}")
     render/opengl/shaders/rules.cpp  
     render/opengl/shaders/common.cpp  
   )
+=======
+		render/mock_opengl/mock_gl_engine.cpp  
+		render/opengl/shaders/texture_draw_shaders.cpp  
+		render/opengl/shaders/lighting_shaders.cpp  
+		render/opengl/shaders/ground_plane_shaders.cpp  
+		render/opengl/shaders/histogram_shaders.cpp  
+		render/opengl/shaders/surface_mesh_shaders.cpp  
+		render/opengl/shaders/vector_shaders.cpp  
+		render/opengl/shaders/cube_shaders.cpp  
+		render/opengl/shaders/sphere_shaders.cpp  
+		render/opengl/shaders/ribbon_shaders.cpp  
+		render/opengl/shaders/cylinder_shaders.cpp  
+	)
+>>>>>>> origin/tetMesh
 
   list(APPEND BACKEND_HEADERS
     ${INCLUDE_ROOT}render/mock_opengl/mock_gl_engine.h
@@ -149,19 +179,44 @@ SET(SRCS
   ## Structures
 
   # Point cloud
+<<<<<<< HEAD
   point_cloud.cpp
   point_cloud_color_quantity.cpp
   point_cloud_scalar_quantity.cpp
   point_cloud_vector_quantity.cpp
   point_cloud_parameterization_quantity.cpp
+=======
+	point_cloud.cpp
+	point_cloud_color_quantity.cpp
+	point_cloud_scalar_quantity.cpp
+	point_cloud_vector_quantity.cpp
+	point_cloud_frame_quantity.cpp
+>>>>>>> origin/tetMesh
 
   # Surface
   surface_mesh.cpp
   surface_color_quantity.cpp
+<<<<<<< HEAD
   surface_scalar_quantity.cpp
   surface_vector_quantity.cpp
   surface_parameterization_quantity.cpp
   
+=======
+	surface_distance_quantity.cpp
+	surface_parameterization_quantity.cpp
+	surface_vector_quantity.cpp
+	surface_count_quantity.cpp
+	surface_graph_quantity.cpp
+  #surface_subset_quantity.cpp
+  #surface_selection_quantity.cpp
+  #surface_input_curve_quantity.cpp
+
+  # Tet Mesh
+  tet_mesh.cpp
+  tet_scalar_quantity.cpp
+  tet_vector_quantity.cpp
+
+>>>>>>> origin/tetMesh
   # Curve network
   curve_network.cpp
   curve_network_color_quantity.cpp
@@ -215,6 +270,7 @@ SET(SRCS
 
 # Setting headers is useful for some build systems. For instance, in Visual Studio this is necessary for the header files to be indexed as a part of the project.
 SET(HEADERS
+<<<<<<< HEAD
   ${INCLUDE_ROOT}/affine_remapper.h
   ${INCLUDE_ROOT}/affine_remapper.ipp
   ${INCLUDE_ROOT}/camera_parameters.h
@@ -300,6 +356,72 @@ SET(HEADERS
   ${INCLUDE_ROOT}/volume_grid_scalar_quantity.h
   #${INCLUDE_ROOT}/volume_grid_color_quantity.h
   ${INCLUDE_ROOT}/volume_grid_vector_quantity.h
+=======
+	${INCLUDE_ROOT}/affine_remapper.h
+	${INCLUDE_ROOT}/affine_remapper.ipp
+	${INCLUDE_ROOT}/camera_parameters.h
+	${INCLUDE_ROOT}/color_management.h
+	${INCLUDE_ROOT}/colors.h
+	${INCLUDE_ROOT}/combining_hash_functions.h
+	${INCLUDE_ROOT}/curve_network.h
+	${INCLUDE_ROOT}/curve_network.ipp
+	${INCLUDE_ROOT}/curve_network_color_quantity.h
+	${INCLUDE_ROOT}/curve_network_quantity.h
+	${INCLUDE_ROOT}/curve_network_scalar_quantity.h
+	${INCLUDE_ROOT}/curve_network_vector_quantity.h
+	${INCLUDE_ROOT}/disjoint_sets.h
+	${INCLUDE_ROOT}/file_helpers.h
+	${INCLUDE_ROOT}/histogram.h
+	${INCLUDE_ROOT}/messages.h
+	${INCLUDE_ROOT}/options.h
+	${INCLUDE_ROOT}/persistent_value.h
+	${INCLUDE_ROOT}/pick.h
+	${INCLUDE_ROOT}/pick.ipp
+	${INCLUDE_ROOT}/point_cloud.h
+	${INCLUDE_ROOT}/point_cloud.ipp
+	${INCLUDE_ROOT}/point_cloud_color_quantity.h
+	${INCLUDE_ROOT}/point_cloud_quantity.h
+	${INCLUDE_ROOT}/point_cloud_scalar_quantity.h
+	${INCLUDE_ROOT}/point_cloud_vector_quantity.h
+	${INCLUDE_ROOT}/polyscope.h
+	${INCLUDE_ROOT}/quantity.h
+	${INCLUDE_ROOT}/quantity.ipp
+	${INCLUDE_ROOT}/render/color_maps.h
+	${INCLUDE_ROOT}/render/engine.h
+	${INCLUDE_ROOT}/render/engine.ipp
+	${INCLUDE_ROOT}/render/ground_plane.h
+	${INCLUDE_ROOT}/render/material_defs.h
+	${INCLUDE_ROOT}/render/materials.h
+	${INCLUDE_ROOT}/render/shaders.h
+	${INCLUDE_ROOT}/ribbon_artist.h
+	${INCLUDE_ROOT}/scaled_value.h
+	${INCLUDE_ROOT}/screenshot.h
+	${INCLUDE_ROOT}/standardize_data_array.h
+	${INCLUDE_ROOT}/structure.h
+	${INCLUDE_ROOT}/structure.ipp
+	${INCLUDE_ROOT}/surface_color_quantity.h
+	${INCLUDE_ROOT}/surface_count_quantity.h
+	${INCLUDE_ROOT}/surface_distance_quantity.h
+	${INCLUDE_ROOT}/surface_graph_quantity.h
+	${INCLUDE_ROOT}/surface_input_curve_quantity.h
+	${INCLUDE_ROOT}/surface_mesh.h
+	${INCLUDE_ROOT}/surface_mesh.ipp
+	${INCLUDE_ROOT}/surface_mesh_enums.h
+	${INCLUDE_ROOT}/surface_mesh_io.h
+	${INCLUDE_ROOT}/surface_mesh_quantity.h
+	${INCLUDE_ROOT}/surface_parameterization_enums.h
+	${INCLUDE_ROOT}/surface_parameterization_quantity.h
+	${INCLUDE_ROOT}/surface_scalar_quantity.h
+	${INCLUDE_ROOT}/surface_selection_quantity.h
+	${INCLUDE_ROOT}/surface_subset_quantity.h
+	${INCLUDE_ROOT}/surface_vector_quantity.h
+	${INCLUDE_ROOT}/trace_vector_field.h
+  ${INCLUDE_ROOT}/tet_mesh.h
+  ${INCLUDE_ROOT}/tet_scalar_quantity.h
+  ${INCLUDE_ROOT}/tet_vector_quantity.h
+	${INCLUDE_ROOT}/utilities.h
+	${INCLUDE_ROOT}/view.h
+>>>>>>> origin/tetMesh
 )
 
 # Create a single library for the project

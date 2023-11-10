@@ -15,6 +15,7 @@
 
 #include "polyscope/point_cloud_color_quantity.h"
 #include "polyscope/point_cloud_parameterization_quantity.h"
+#include "polyscope/point_cloud_frame_quantity.h"
 #include "polyscope/point_cloud_scalar_quantity.h"
 #include "polyscope/point_cloud_vector_quantity.h"
 
@@ -30,6 +31,7 @@ class PointCloudColorQuantity;
 class PointCloudScalarQuantity;
 class PointCloudParameterizationQuantity;
 class PointCloudVectorQuantity;
+class PointCloudFrameQuantity;
 
 
 template <> // Specialize the quantity type
@@ -87,6 +89,9 @@ public:
   template <class T>
   PointCloudVectorQuantity* addVectorQuantity2D(std::string name, const T& vectors,
                                                 VectorType vectorType = VectorType::STANDARD);
+  template <class T>
+  PointCloudFrameQuantity* addFrameQuantity(std::string name, const T& vectors, bool cross = false,
+                                            VectorType vectorType = VectorType::STANDARD);
 
   // === Mutate
   template <class V>
@@ -177,8 +182,9 @@ private:
   std::string pointRadiusQuantityName = ""; // empty string means none
   bool pointRadiusQuantityAutoscale = true;
   PointCloudScalarQuantity& resolvePointRadiusQuantity(); // helper
+  PointCloudFrameQuantity* addFrameQuantityImpl(std::string name, const std::vector<std::array<glm::vec3, 3>>& frames,
+                                                bool cross, VectorType vectorType);
 };
-
 
 // Shorthand to add a point cloud to polyscope
 template <class T>
