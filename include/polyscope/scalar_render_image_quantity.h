@@ -24,23 +24,41 @@ public:
   virtual void buildCustomUI() override;
 
   virtual void refresh() override;
-  virtual ScalarRenderImageQuantity* setEnabled(bool newEnabled) override;
 
   virtual std::string niceName() override;
 
   // == Setters and getters
 
+  template <typename T1, typename T2, typename T3>
+  void updateBuffers(const T1& depthData, const T2& normalData, const T3& scalarData);
 
 protected:
   // === Visualization parameters
 
   // === Render data
-  std::shared_ptr<render::TextureBuffer> textureScalar;
   std::shared_ptr<render::ShaderProgram> program;
 
   // === Helpers
   void prepare();
 };
+
+template <typename T1, typename T2, typename T3>
+void ScalarRenderImageQuantity::updateBuffers(const T1& depthData, const T2& normalData, const T3& scalarData) {
+
+  validateSize(depthData, dimX * dimY, "scalar render image depth data " + name);
+  validateSize(normalData, {dimX * dimY, 0}, "scalar render image normal data " + name);
+  validateSize(scalarData, dimX * dimY, "scalar render image color data " + name);
+
+  // standardize
+  std::vector<float> standardDepth(standardizeArray<float>(depthData));
+  std::vector<glm::vec3> standardNormal(standardizeVectorArray<glm::vec3, 3>(normalData));
+  std::vector<double> standardScalar(standardizeArray<double>(scalarData));
+
+  values.data = standardScalar;
+  values.markHostBufferUpdated();
+
+  updateBaseBuffers(standardDepth, standardNormal);
+}
 
 
 } // namespace polyscope

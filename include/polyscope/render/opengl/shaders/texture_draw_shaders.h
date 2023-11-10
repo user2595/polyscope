@@ -14,6 +14,7 @@ extern const ShaderStageSpecification SPHEREBG_DRAW_VERT_SHADER;
 extern const ShaderStageSpecification SPHEREBG_DRAW_FRAG_SHADER;
 extern const ShaderStageSpecification PLAIN_TEXTURE_DRAW_FRAG_SHADER;
 extern const ShaderStageSpecification PLAIN_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER;
+extern const ShaderStageSpecification PLAIN_RAW_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER;
 extern const ShaderStageSpecification DOT3_TEXTURE_DRAW_FRAG_SHADER;
 extern const ShaderStageSpecification MAP3_TEXTURE_DRAW_FRAG_SHADER;
 extern const ShaderStageSpecification COMPOSITE_PEEL;
@@ -31,10 +32,16 @@ extern const ShaderReplacementRule
 extern const ShaderReplacementRule
     TEXTURE_ORIGIN_LOWERLEFT; // sample textures with (0,0) in the lower left, which is the usual openGL rule
 extern const ShaderReplacementRule TEXTURE_SET_TRANSPARENCY; // apply a transparency uniform to the texture
+extern const ShaderReplacementRule TEXTURE_PREMULTIPLY_OUT;  // premultiply color samples
 extern const ShaderReplacementRule TEXTURE_SHADE_COLOR;      // sample a color from a texture and use it for shading
-extern const ShaderReplacementRule TEXTURE_PROPAGATE_VALUE;  // sample a scalar from a texture and use it for shading
+extern const ShaderReplacementRule
+    TEXTURE_SHADE_COLORALPHA;                               // sample a coloralpha from a texture and use it for shading
+extern const ShaderReplacementRule TEXTURE_PROPAGATE_VALUE; // sample a scalar from a texture and use it for shading
+extern const ShaderReplacementRule TEXTURE_PROPAGATE_COLOR; // sample a color from a texture and use it for shading
 extern const ShaderReplacementRule
     TEXTURE_BILLBOARD_FROM_UNIFORMS; // adjust a texture's billboard position via uniforms
+extern const ShaderReplacementRule SHADE_NORMAL_FROM_TEXTURE;
+extern const ShaderReplacementRule SHADE_NORMAL_FROM_VIEWPOS_VAR;
 
 
 // Shaders (which are used elsewhere)

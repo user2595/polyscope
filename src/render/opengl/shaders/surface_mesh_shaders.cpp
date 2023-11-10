@@ -88,6 +88,7 @@ R"(
            ${ GLOBAL_FRAGMENT_FILTER }$
           
            // Shading
+           vec3 shadeNormal = a_vertexNormalToFrag;
            ${ GENERATE_SHADE_VALUE }$
            ${ GENERATE_SHADE_COLOR }$
            
@@ -95,7 +96,93 @@ R"(
            ${ APPLY_WIREFRAME }$
 
            // Lighting
-           vec3 shadeNormal = a_vertexNormalToFrag;
+           ${ PERTURB_SHADE_NORMAL }$
+           ${ GENERATE_LIT_COLOR }$
+
+           // Set alpha
+           float alphaOut = 1.0;
+           ${ GENERATE_ALPHA }$
+           
+           ${ PERTURB_LIT_COLOR }$
+
+           // Write output
+           litColor *= alphaOut; // premultiplied alpha
+           outputF = vec4(litColor, alphaOut);
+        }
+)"
+};
+
+const ShaderStageSpecification SIMPLE_MESH_VERT_SHADER = {
+
+    ShaderStageType::Vertex,
+
+    // uniforms
+    {
+        {"u_modelView", RenderDataType::Matrix44Float},
+        {"u_projMatrix", RenderDataType::Matrix44Float},
+    }, 
+
+    // attributes
+    {
+        {"a_vertexPositions", RenderDataType::Vector3Float},
+    },
+
+    {}, // textures
+
+    // source
+R"(
+        ${ GLSL_VERSION }$
+
+        uniform mat4 u_modelView;
+        uniform mat4 u_projMatrix;
+        
+        in vec3 a_vertexPositions;
+        
+        ${ VERT_DECLARATIONS }$
+        
+        void main()
+        {
+            gl_Position = u_projMatrix * u_modelView * vec4(a_vertexPositions,1.);
+            
+            ${ VERT_ASSIGNMENTS }$
+        }
+)"
+};
+
+const ShaderStageSpecification SIMPLE_MESH_FRAG_SHADER = {
+    
+    ShaderStageType::Fragment,
+    
+    // uniforms
+    {
+    }, 
+
+    { }, // attributes
+    
+    // textures 
+    {
+    },
+ 
+    // source
+R"(
+        ${ GLSL_VERSION }$
+
+        layout(location = 0) out vec4 outputF;
+
+        ${ FRAG_DECLARATIONS }$
+
+        void main()
+        {
+           float depth = gl_FragCoord.z;
+           ${ GLOBAL_FRAGMENT_FILTER_PREP }$
+           ${ GLOBAL_FRAGMENT_FILTER }$
+          
+           // Shading
+           vec3 shadeNormal = vec3(0., 0., 0.); // must be filled out by a rule below
+           ${ GENERATE_SHADE_VALUE }$
+           ${ GENERATE_SHADE_COLOR }$
+
+           // Lighting
            ${ PERTURB_SHADE_NORMAL }$
            ${ GENERATE_LIT_COLOR }$
 
@@ -247,6 +334,27 @@ const ShaderReplacementRule MESH_PROPAGATE_VALUE2 (
     /* textures */ {}
 );
 
+const ShaderReplacementRule MESH_PROPAGATE_TCOORD (
+    /* rule name */ "MESH_PROPAGATE_TCOORD",
+    { /* replacement sources */
+      {"VERT_DECLARATIONS", R"(
+          in vec2 a_tCoord;
+          out vec2 tCoord;
+        )"},
+      {"VERT_ASSIGNMENTS", R"(
+          tCoord = a_tCoord;
+        )"},
+      {"FRAG_DECLARATIONS", R"(
+          in vec2 tCoord;
+        )"},
+    },
+    /* uniforms */ {},
+    /* attributes */ {
+      {"a_tCoord", RenderDataType::Vector2Float},
+    },
+    /* textures */ {}
+);
+
 const ShaderReplacementRule MESH_PROPAGATE_CULLPOS (
     /* rule name */ "MESH_PROPAGATE_CULLPOS",
     { /* replacement sources */
@@ -271,8 +379,8 @@ const ShaderReplacementRule MESH_PROPAGATE_CULLPOS (
     /* textures */ {}
 );
 
-const ShaderReplacementRule MESH_WIREFRAME(
-    /* rule name */ "MESH_WIREFRAME",
+const ShaderReplacementRule MESH_WIREFRAME_FROM_BARY(
+    /* rule name */ "MESH_WIREFRAME_FROM_BARY",
     { /* replacement sources */
       {"VERT_DECLARATIONS", R"(
           in vec3 a_edgeIsReal;
@@ -283,6 +391,23 @@ const ShaderReplacementRule MESH_WIREFRAME(
         )"},
       {"FRAG_DECLARATIONS", R"(
           in vec3 a_edgeIsRealToFrag;
+        )"},
+      {"APPLY_WIREFRAME", R"(
+          vec3 wireframe_UVW = a_barycoordToFrag;
+          vec3 wireframe_mask = a_edgeIsRealToFrag;
+      )"},
+    },
+    /* uniforms */ { },
+    /* attributes */ {
+      {"a_edgeIsReal", RenderDataType::Vector3Float},
+    },
+    /* textures */ {}
+);
+
+const ShaderReplacementRule MESH_WIREFRAME(
+    /* rule name */ "MESH_WIREFRAME",
+    { /* replacement sources */
+      {"FRAG_DECLARATIONS", R"(
 
           uniform float u_edgeWidth;
           uniform vec3 u_edgeColor;
@@ -303,7 +428,8 @@ const ShaderReplacementRule MESH_WIREFRAME(
           }
         )"},
       {"APPLY_WIREFRAME", R"(
-          float edgeFactor = getEdgeFactor(a_barycoordToFrag, a_edgeIsRealToFrag, u_edgeWidth);
+          /* these wireframe_ should be populated by something else, such as the helper rule above */
+          float edgeFactor = getEdgeFactor(wireframe_UVW, wireframe_mask, u_edgeWidth);
           albedoColor = mix(albedoColor, u_edgeColor, edgeFactor);
       )"},
     },
@@ -311,11 +437,10 @@ const ShaderReplacementRule MESH_WIREFRAME(
       {"u_edgeColor", RenderDataType::Vector3Float},
       {"u_edgeWidth", RenderDataType::Float},
     },
-    /* attributes */ {
-      {"a_edgeIsReal", RenderDataType::Vector3Float},
-    },
+    /* attributes */ {},
     /* textures */ {}
 );
+
 
 const ShaderReplacementRule MESH_WIREFRAME_ONLY( 
     // Must always be used in conjunction with MESH_WIREFRAME
@@ -326,28 +451,6 @@ const ShaderReplacementRule MESH_WIREFRAME_ONLY(
       )"},
     },
     /* uniforms */ {},
-    /* attributes */ {},
-    /* textures */ {}
-);
-
-const ShaderReplacementRule MESH_COMPUTE_NORMAL_FROM_POSITION (
-    /* rule name */ "MESH_COMPUTE_NORMAL_FROM_POSITION",
-    { /* replacement sources */
-      {"FRAG_DECLARATIONS", R"(
-        uniform mat4 u_invProjMatrix;
-        uniform vec4 u_viewport;
-        vec3 fragmentViewPosition(vec4 viewport, vec2 depthRange, mat4 invProjMat, vec4 fragCoord);
-        )"},
-      {"PERTURB_SHADE_NORMAL", R"(
-        vec2 depthRange_fornormal = vec2(gl_DepthRange.near, gl_DepthRange.far);
-        vec3 viewPos_fornormal = fragmentViewPosition(u_viewport, depthRange_fornormal, u_invProjMatrix, gl_FragCoord);
-        shadeNormal = normalize(cross(dFdx(viewPos_fornormal),dFdy(viewPos_fornormal)));
-        )"}
-    },
-    /* uniforms */ {
-        {"u_invProjMatrix", RenderDataType::Matrix44Float},
-        {"u_viewport", RenderDataType::Vector4Float},
-    },
     /* attributes */ {},
     /* textures */ {}
 );
@@ -515,6 +618,7 @@ const ShaderReplacementRule MESH_PROPAGATE_PICK_SIMPLE ( // this one does faces 
     },
     /* textures */ {}
 );
+
 
 // clang-format on
 

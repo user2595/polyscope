@@ -25,6 +25,7 @@ void SurfaceScalarQuantity::draw() {
   parent.setStructureUniforms(*program);
   parent.setSurfaceMeshUniforms(*program);
   setScalarUniforms(*program);
+  render::engine->setMaterialUniforms(*program, parent.getMaterial());
 
   program->draw();
 }
@@ -64,13 +65,23 @@ SurfaceVertexScalarQuantity::SurfaceVertexScalarQuantity(std::string name, const
 
 {
   values.ensureHostBufferPopulated();
-  parent.vertexAreas.ensureHostBufferPopulated();
-  hist.buildHistogram(values.data); // rebuild to incorporate weights
+  hist.buildHistogram(values.data);
 }
 
 void SurfaceVertexScalarQuantity::createProgram() {
   // Create the program to draw this quantity
-  program = render::engine->requestShader("MESH", parent.addSurfaceMeshRules(addScalarRules({"MESH_PROPAGATE_VALUE"})));
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
 
   program->setAttribute("a_value", values.getIndexedRenderAttributeBuffer(parent.triangleVertexInds));
   parent.setMeshGeometryAttributes(*program);
@@ -97,12 +108,23 @@ SurfaceFaceScalarQuantity::SurfaceFaceScalarQuantity(std::string name, const std
 {
   values.ensureHostBufferPopulated();
   parent.faceAreas.ensureHostBufferPopulated();
-  hist.buildHistogram(values.data); // rebuild to incorporate weights
+  hist.buildHistogram(values.data);
 }
 
 void SurfaceFaceScalarQuantity::createProgram() {
   // Create the program to draw this quantity
-  program = render::engine->requestShader("MESH", parent.addSurfaceMeshRules(addScalarRules({"MESH_PROPAGATE_VALUE"})));
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
 
   program->setAttribute("a_value", values.getIndexedRenderAttributeBuffer(parent.triangleFaceInds));
   parent.setMeshGeometryAttributes(*program);
@@ -131,13 +153,23 @@ SurfaceEdgeScalarQuantity::SurfaceEdgeScalarQuantity(std::string name, const std
 
 {
   values.ensureHostBufferPopulated();
-  hist.buildHistogram(values.data); // rebuild to incorporate weights
+  hist.buildHistogram(values.data);
 }
 
 void SurfaceEdgeScalarQuantity::createProgram() {
   // Create the program to draw this quantity
-  program = render::engine->requestShader(
-      "MESH", parent.addSurfaceMeshRules(addScalarRules({"MESH_PROPAGATE_HALFEDGE_VALUE"})));
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_HALFEDGE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
 
   program->setAttribute("a_value3", values.getIndexedRenderAttributeBuffer(parent.triangleAllEdgeInds));
   parent.setMeshGeometryAttributes(*program);
@@ -168,8 +200,18 @@ SurfaceHalfedgeScalarQuantity::SurfaceHalfedgeScalarQuantity(std::string name, c
 
 void SurfaceHalfedgeScalarQuantity::createProgram() {
   // Create the program to draw this quantity
-  program = render::engine->requestShader(
-      "MESH", parent.addSurfaceMeshRules(addScalarRules({"MESH_PROPAGATE_HALFEDGE_VALUE"})));
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_HALFEDGE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
 
   program->setAttribute("a_value3", values.getIndexedRenderAttributeBuffer(parent.triangleAllHalfedgeInds));
   parent.setMeshGeometryAttributes(*program);
@@ -199,7 +241,18 @@ SurfaceCornerScalarQuantity::SurfaceCornerScalarQuantity(std::string name, const
 
 void SurfaceCornerScalarQuantity::createProgram() {
   // Create the program to draw this quantity
-  program = render::engine->requestShader("MESH", parent.addSurfaceMeshRules(addScalarRules({"MESH_PROPAGATE_VALUE"})));
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
 
   program->setAttribute("a_value", values.getIndexedRenderAttributeBuffer(parent.triangleCornerInds));
   parent.setMeshGeometryAttributes(*program);
@@ -213,5 +266,45 @@ void SurfaceCornerScalarQuantity::buildCornerInfoGUI(size_t cInd) {
   ImGui::Text("%g", values.getValue(cInd));
   ImGui::NextColumn();
 }
+
+// ========================================================
+// ==========          Texture Scalar            ==========
+// ========================================================
+
+SurfaceTextureScalarQuantity::SurfaceTextureScalarQuantity(std::string name, SurfaceMesh& mesh_,
+                                                           SurfaceParameterizationQuantity& param_, size_t dimX_,
+                                                           size_t dimY_, const std::vector<double>& values_,
+                                                           ImageOrigin origin_, DataType dataType_)
+    : SurfaceScalarQuantity(name, mesh_, "vertex", values_, dataType_), param(param_), dimX(dimX_), dimY(dimY_),
+      imageOrigin(origin_) {
+  values.setTextureSize(dimX, dimY);
+  values.ensureHostBufferPopulated();
+  hist.buildHistogram(values.data);
+}
+
+void SurfaceTextureScalarQuantity::createProgram() {
+  // Create the program to draw this quantity
+
+  // clang-format off
+  program = render::engine->requestShader("MESH",
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addScalarRules(
+            {"MESH_PROPAGATE_TCOORD", getImageOriginRule(imageOrigin), "TEXTURE_PROPAGATE_VALUE"}
+          )
+        )
+      )
+    );
+  // clang-format on
+
+  parent.setMeshGeometryAttributes(*program);
+  program->setAttribute("a_tCoord", param.coords.getIndexedRenderAttributeBuffer(parent.triangleCornerInds));
+  program->setTextureFromBuffer("t_scalar", values.getRenderTextureBuffer().get());
+  render::engine->setMaterial(*program, parent.getMaterial());
+  program->setTextureFromColormap("t_colormap", cMap.get());
+
+  values.getRenderTextureBuffer()->setFilterMode(FilterMode::Linear);
+}
+
 
 } // namespace polyscope

@@ -38,6 +38,15 @@ public:
   QuantityT* setVectorLengthScale(double newLength, bool isRelative = true);
   double getVectorLengthScale();
 
+  // The upper limit for the length of vectors in the quantity, used in scaling calculations.
+  // Ordinarily this is computed as the max length of all input vectors, but it can be manually overridden,
+  // e.g. to make sure that vectors are consistently scaled across different data.
+  //
+  // Note that unlike most other getter/setters, this is NOT a persistent value. (It doesn't automatically get
+  // propagated to new quantities with the same name).
+  QuantityT* setVectorLengthRange(double newLength);
+  double getVectorLengthRange();
+
   // The radius of the vectors
   QuantityT* setVectorRadius(double val, bool isRelative = true);
   double getVectorRadius();
@@ -59,6 +68,9 @@ protected:
   PersistentValue<ScaledValue<float>> vectorRadius;
   PersistentValue<glm::vec3> vectorColor;
   PersistentValue<std::string> material;
+
+  float vectorLengthRange = -1.;
+  bool vectorLengthRangeManuallySet = false;
 
   std::shared_ptr<render::ShaderProgram> vectorProgram;
 };
@@ -104,7 +116,6 @@ protected:
   void updateMaxLength();
 
   std::vector<glm::vec3> vectorsData;
-  float maxLength = -777;
 };
 
 
@@ -118,8 +129,8 @@ template <typename QuantityT>
 class TangentVectorQuantity : public VectorQuantityBase<QuantityT> {
 public:
   TangentVectorQuantity(QuantityT& parent, const std::vector<glm::vec2>& tangentVectors,
-                        render::ManagedBuffer<glm::vec3>& vectorRoots,
-                        render::ManagedBuffer<std::array<glm::vec3, 2>>& tangentBasis, int nSym, VectorType vectorType);
+                        const std::vector<glm::vec3>& tangentBasisX, const std::vector<glm::vec3>& tangentBasisY,
+                        render::ManagedBuffer<glm::vec3>& vectorRoots, int nSym, VectorType vectorType);
 
   void drawVectors();
   void refreshVectors();
@@ -133,14 +144,14 @@ public:
   // Interaction with the data (updating it on CPU or GPU side, accessing it, etc) happens through this wrapper.
   render::ManagedBuffer<glm::vec2> tangentVectors;
 
+  // Wrapper around the actual buffer of basis data stored in the class.
+  // Interaction with the data (updating it on CPU or GPU side, accessing it, etc) happens through this wrapper.
+  render::ManagedBuffer<glm::vec3> tangentBasisX;
+  render::ManagedBuffer<glm::vec3> tangentBasisY;
+
   // A buffer of root locations at which to draw the vectors. Not that this is _not_ owned by this class, it is just a
   // reference.
   render::ManagedBuffer<glm::vec3>& vectorRoots;
-
-  // A buffer of (orthonormal) tangent frames at which to draw the vectors. Again, just a reference.
-  render::ManagedBuffer<std::array<glm::vec3, 2>>& tangentBasis;
-
-  // === ~DANGER~ experimental/unsupported functions
 
 protected:
   // helpers
@@ -148,8 +159,9 @@ protected:
   void updateMaxLength();
 
   std::vector<glm::vec2> tangentVectorsData;
+  std::vector<glm::vec3> tangentBasisXData;
+  std::vector<glm::vec3> tangentBasisYData;
   int nSym;
-  float maxLength = -777;
 };
 
 } // namespace polyscope

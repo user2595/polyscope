@@ -31,14 +31,16 @@ enum class DrawMode {
   IndexedLines,
   IndexedLineStrip,
   IndexedLinesAdjacency,
-  IndexedLineStripAdjacency
+  IndexedLineStripAdjacency,
+  TrianglesInstanced,
+  TriangleStripInstanced,
 };
 
 enum class FilterMode { Nearest = 0, Linear };
 enum class TextureFormat { RGB8 = 0, RGBA8, RG16F, RGB16F, RGBA16F, RGBA32F, RGB32F, R32F, R16F, DEPTH24 };
 enum class RenderBufferType { Color, ColorAlpha, Depth, Float4 };
 enum class DepthMode { Less, LEqual, LEqualReadOnly, Greater, Disable, PassReadOnly };
-enum class BlendMode { Over, AlphaOver, OverNoWrite, Under, Zero, WeightedAdd, Source, Disable };
+enum class BlendMode { AlphaOver, OverNoWrite, AlphaUnder, Zero, WeightedAdd, Add, Source, Disable };
 enum class RenderDataType {
   Vector2Float,
   Vector3Float,
@@ -47,17 +49,21 @@ enum class RenderDataType {
   Float,
   Int,
   UInt,
-  Index,
   Vector2UInt,
   Vector3UInt,
   Vector4UInt
 };
 
+enum class DeviceBufferType { Attribute, Texture1d, Texture2d, Texture3d };
+
 int dimension(const TextureFormat& x);
+int sizeInBytes(const TextureFormat& f);
 std::string modeName(const TransparencyMode& m);
 std::string renderDataTypeName(const RenderDataType& r);
+int sizeInBytes(const RenderDataType& r);
 int renderDataTypeCountCompatbility(const RenderDataType r1, const RenderDataType r2);
 std::string getImageOriginRule(ImageOrigin imageOrigin);
+std::string deviceBufferTypeName(const DeviceBufferType& d);
 
 namespace render {
 
@@ -91,8 +97,9 @@ public:
   RenderDataType getType() const { return dataType; }
   int getArrayCount() const { return arrayCount; }
   int64_t getDataSize() const { return dataSize; }
+  int64_t getDataSizeInBytes() const { return dataSize * sizeInBytes(dataType) * getArrayCount(); }
   uint64_t getUniqueID() const { return uniqueID; }
-  bool isSet() const { return dataSize > 0; }
+  bool isSet() const { return setFlag; }
 
   // get data at a single index from the buffer
   virtual float getData_float(size_t ind) = 0;
@@ -121,26 +128,55 @@ public:
 protected:
   RenderDataType dataType;
   int arrayCount;
-  int64_t dataSize = -1; // the size of the data currently stored in this attribute (-1 if nothing)
+  bool setFlag = false;
+  int64_t dataSize = -1;   // the size of the data currently stored in this attribute (-1 if nothing)
+                           // this counts # elements of the specified type, s.t. array'd mulitpliers are still just one
+  uint64_t bufferSize = 0; // the size of the allocated buffer (which might be larger than the data sixze)
   uint64_t uniqueID;
 };
 
 class TextureBuffer {
 public:
   // abstract class: use the factory methods from the Engine class
-  TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_ = -1);
+  TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_ = -1,
+                unsigned int sizeZ_ = -1);
 
   virtual ~TextureBuffer();
 
   // Resize the underlying buffer (contents are lost)
   virtual void resize(unsigned int newLen);
   virtual void resize(unsigned int newX, unsigned int newY);
+  virtual void resize(unsigned int newX, unsigned int newY, unsigned int newZ);
+
+  // Fill with data
+  // NOTE: some of these are not implemented yet
+  virtual void setData(const std::vector<glm::vec2>& data) = 0;
+  virtual void setData(const std::vector<glm::vec3>& data) = 0;
+  virtual void setData(const std::vector<glm::vec4>& data) = 0;
+  virtual void setData(const std::vector<float>& data) = 0;
+  virtual void setData(const std::vector<double>& data) = 0;
+  virtual void setData(const std::vector<int32_t>& data) = 0;
+  virtual void setData(const std::vector<uint32_t>& data) = 0;
+  virtual void setData(const std::vector<glm::uvec2>& data) = 0;
+  virtual void setData(const std::vector<glm::uvec3>& data) = 0;
+  virtual void setData(const std::vector<glm::uvec4>& data) = 0;
+
+  // Array-valued
+  // NOTE: some of these are not implemented yet
+  // (adding these lazily as we need them)
+  // (sadly we cannot template the virtual function)
+  virtual void setData(const std::vector<std::array<glm::vec3, 2>>& data) = 0;
+  virtual void setData(const std::vector<std::array<glm::vec3, 3>>& data) = 0;
+  virtual void setData(const std::vector<std::array<glm::vec3, 4>>& data) = 0;
 
   unsigned int getSizeX() const { return sizeX; }
   unsigned int getSizeY() const { return sizeY; }
+  unsigned int getSizeZ() const { return sizeZ; }
   int getDimension() const { return dim; }
   unsigned int getTotalSize() const; // product of dimensions
+  int64_t getSizeInBytes() const { return static_cast<int64_t>(getTotalSize()) * sizeInBytes(format); }
   uint64_t getUniqueID() const { return uniqueID; }
+  TextureFormat getFormat() const { return format; }
 
   virtual void setFilterMode(FilterMode newMode);
 
@@ -156,12 +192,14 @@ public:
   // void fillTextureData2D(std::string name, unsigned char* texData, unsigned int width, unsigned int height,
   // bool withAlpha = true, bool useMipMap = false, bool repeat = false);
 
-  virtual void* getNativeHandle() = 0; // used to interop with external things, e.g. ImGui
+  // used to interop with external things, e.g. ImGui
+  virtual void* getNativeHandle() = 0;
+  virtual uint32_t getNativeBufferID() = 0;
 
 protected:
   int dim;
   TextureFormat format;
-  unsigned int sizeX, sizeY;
+  unsigned int sizeX, sizeY, sizeZ;
   uint64_t uniqueID;
 };
 
@@ -229,6 +267,7 @@ public:
   virtual void blitTo(FrameBuffer* other) = 0;
   virtual std::vector<unsigned char> readBuffer() = 0;
 
+  virtual uint32_t getNativeBufferID() = 0;
   uint64_t getUniqueID() const { return uniqueID; }
 
 protected:
@@ -296,10 +335,11 @@ public:
   std::vector<ShaderSpecTexture> textures;
 };
 enum class ShaderReplacementDefaults {
-  SceneObject, // an object in the scene, which gets lit via matcap (etc)
-  Pick,        // rendering to a pick buffer
-  Process,     // postprocessing effects, etc
-  None         // no defaults applied
+  SceneObject,        // an object in the scene, which gets lit via matcap (etc)
+  SceneObjectNoSlice, // like SceneObject, but omits slice-related rules
+  Pick,               // rendering to a pick buffer
+  Process,            // postprocessing effects, etc
+  None                // no defaults applied
 };
 
 // Encapsulate a shader program
@@ -344,11 +384,6 @@ public:
   virtual void setAttribute(std::string name, const std::vector<uint32_t>& data) = 0;
   // clang-format on
 
-  // Convenience method to set an array-valued attrbute, such as 'in vec3 vertexVal[3]'. Applies interleaving then
-  // forwards to the usual setAttribute
-  template <typename T, unsigned int C>
-  void setAttribute(std::string name, const std::vector<std::array<T, C>>& data);
-
 
   // Textures
   virtual bool hasTexture(std::string name) = 0;
@@ -357,14 +392,16 @@ public:
   virtual void setTexture2D(std::string name, unsigned char* texData, unsigned int width, unsigned int height,
                             bool withAlpha = true, bool useMipMap = false, bool repeat = false) = 0;
   virtual void setTextureFromColormap(std::string name, const std::string& colorMap, bool allowUpdate = false) = 0;
+  // TODO make this one take a shared pointer and have the same semantics as the attribute version
   virtual void setTextureFromBuffer(std::string name, TextureBuffer* textureBuffer) = 0;
 
 
   // Indices
-  virtual void setIndex(std::vector<std::array<unsigned int, 3>>& indices) = 0;
-  virtual void setIndex(std::vector<unsigned int>& indices) = 0;
-  virtual void setIndex(std::vector<glm::uvec3>& indices) = 0;
+  virtual void setIndex(std::shared_ptr<AttributeBuffer> externalBuffer) = 0;
   virtual void setPrimitiveRestartIndex(unsigned int restartIndex) = 0;
+
+  // Indices
+  virtual void setInstanceCount(uint32_t instanceCount) = 0;
 
   // Call once to initialize GLSL code used by multiple shaders
   static void initCommonShaders(); // TODO
@@ -381,15 +418,21 @@ protected:
   DrawMode drawMode;
 
   // How much data is there to draw
-  unsigned int drawDataLength;
+  uint32_t drawDataLength;
 
-  // Does this program use indexed drawing?
+  // Indexed drawing
   bool useIndex = false;
-  long int indexSize = -1;
+  uint32_t indexSizeMult = -1;
   bool usePrimitiveRestart = false;
   bool primitiveRestartIndexSet = false;
   unsigned int restartIndex = -1;
+
   uint64_t uniqueID;
+
+  std::shared_ptr<AttributeBuffer> indexBuffer;
+
+  // instancing
+  uint32_t instanceCount = INVALID_IND_32;
 };
 
 
@@ -420,8 +463,8 @@ public:
   void renderBackground(); // respects background setting
 
   // Manage render state
-  virtual void setDepthMode(DepthMode newMode = DepthMode::Less) = 0;
-  virtual void setBlendMode(BlendMode newMode = BlendMode::Over) = 0;
+  virtual void setDepthMode(DepthMode newMode) = 0;
+  virtual void setBlendMode(BlendMode newMode) = 0;
   virtual void setColorMask(std::array<bool, 4> mask = {true, true, true, true}) = 0;
   virtual void setBackfaceCull(bool newVal = false) = 0;
 
@@ -439,6 +482,8 @@ public:
 
   // Manage materials
   void setMaterial(ShaderProgram& program, const std::string& mat);
+  std::vector<std::string> addMaterialRules(std::string materialName, std::vector<std::string> initRules);
+  void setMaterialUniforms(ShaderProgram& program, const std::string& mat);
 
   // === Scene data and niceties
   GroundPlane groundPlane;
@@ -456,6 +501,7 @@ public:
   virtual bool windowRequestsClose() = 0;
   virtual void pollEvents() = 0;
   virtual bool isKeyPressed(char c) = 0; // for lowercase a-z and 0-9 only
+  virtual int getKeyCode(char c) = 0;    // for lowercase a-z and 0-9 only
   virtual std::string getClipboardText() = 0;
   virtual void setClipboardText(std::string text) = 0;
 
@@ -486,6 +532,12 @@ public:
   virtual std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_,
                                                                unsigned int sizeY_,
                                                                const float* data) = 0; // 2d
+  virtual std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_,
+                                                               unsigned int sizeY_, unsigned int sizeZ_,
+                                                               const unsigned char* data = nullptr) = 0; // 3d
+  virtual std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_,
+                                                               unsigned int sizeY_, unsigned int sizeZ_,
+                                                               const float* data) = 0; // 3d
 
   // create render buffers
   virtual std::shared_ptr<RenderBuffer> generateRenderBuffer(RenderBufferType type, unsigned int sizeX_,
@@ -504,11 +556,13 @@ public:
   std::shared_ptr<FrameBuffer> sceneBuffer, sceneBufferFinal;
   std::shared_ptr<FrameBuffer> pickFramebuffer;
   std::shared_ptr<FrameBuffer> sceneDepthMinFrame;
+  FrameBuffer& getDisplayBuffer();
 
   // Main buffers for rendering
   // sceneDepthMin is an optional texture copy of the depth buffe used for some effects
   std::shared_ptr<TextureBuffer> sceneColor, sceneColorFinal, sceneDepth, sceneDepthMin;
   std::shared_ptr<RenderBuffer> pickColorBuffer, pickDepthBuffer;
+  TextureBuffer& getFinalSceneColorTexture();
 
   // General-use programs used by the engine
   std::shared_ptr<ShaderProgram> renderTexturePlain, renderTextureDot3, renderTextureMap3, renderTextureSphereBG;
@@ -528,9 +582,10 @@ public:
   // == Options
   BackgroundView background = BackgroundView::None;
 
-  float exposure = 1.0;
-  float whiteLevel = 0.75;
+  float exposure = 1.1;
+  float whiteLevel = 1.0;
   float gamma = 2.2;
+  void setTonemapUniforms(ShaderProgram& p);
 
   void setSSAAFactor(int newVal);
   int getSSAAFactor();
@@ -599,26 +654,11 @@ protected:
   uint64_t uniqueID = 500;
 
   // Default rule lists (see enum for explanation)
-  std::vector<std::string> defaultRules_sceneObject{"GLSL_VERSION", "GLOBAL_FRAGMENT_FILTER", "LIGHT_MATCAP"};
+  std::vector<std::string> defaultRules_sceneObject{"GLSL_VERSION", "GLOBAL_FRAGMENT_FILTER"};
   std::vector<std::string> defaultRules_pick{"GLSL_VERSION", "GLOBAL_FRAGMENT_FILTER", "SHADE_COLOR", "LIGHT_PASSTHRU"};
   std::vector<std::string> defaultRules_process{"GLSL_VERSION"};
 };
 
-
-// Implementation of template functions
-template <typename T, unsigned int C>
-inline void ShaderProgram::setAttribute(std::string name, const std::vector<std::array<T, C>>& data) {
-
-  // Unpack and forward
-  std::vector<T> entryData;
-  entryData.reserve(C * data.size());
-  for (auto& x : data) {
-    for (size_t i = 0; i < C; i++) {
-      entryData.push_back(x[i]);
-    }
-  }
-  setAttribute(name, entryData);
-}
 
 // === Public API
 // Callers should basically only interact via these methods and variables

@@ -12,6 +12,7 @@ std::string printPrefix = "[polyscope] ";
 bool errorsThrowExceptions = false;
 bool debugDrawPickBuffer = false;
 int maxFPS = 60;
+bool enableVSync = true;
 bool usePrefsFile = true;
 bool initializeWithDefaultStructures = true;
 bool alwaysRedraw = false;
@@ -20,6 +21,7 @@ bool autoscaleStructures = false;
 bool automaticallyComputeSceneExtents = true;
 bool invokeUserCallbackForNestedShow = false;
 bool giveFocusOnShow = false;
+bool hideWindowAfterShow = true;
 
 bool screenshotTransparency = true;
 std::string screenshotExtension = ".png";
@@ -44,6 +46,9 @@ int transparencyRenderPasses = 8;
 // === Advanced ImGui configuration
 
 bool buildGui = true;
+bool userGuiIsOnRightSide = true;
+bool buildDefaultGuiPanels = true;
+bool renderScene = true;
 bool openImGuiWindowForUserCallback = true;
 std::function<void()> configureImGuiStyleCallback = configureImGuiStyle;
 std::function<std::tuple<ImFontAtlas*, ImFont*, ImFont*>()> prepareImGuiFontsCallback = prepareImGuiFonts;

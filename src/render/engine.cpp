@@ -31,6 +31,24 @@ int dimension(const TextureFormat& x) {
   return 0;
 }
 
+int sizeInBytes(const TextureFormat& f) {
+  // clang-format off
+  switch (f) {
+    case TextureFormat::RGB8:     return 3*1;
+    case TextureFormat::RGBA8:    return 4*1;
+    case TextureFormat::RG16F:    return 2*2;
+    case TextureFormat::RGB16F:   return 3*2;
+    case TextureFormat::RGBA16F:  return 4*2;
+    case TextureFormat::R32F:     return 1*4;
+    case TextureFormat::R16F:     return 1*2;
+    case TextureFormat::RGB32F:   return 3*4;
+    case TextureFormat::RGBA32F:  return 4*4;
+    case TextureFormat::DEPTH24:  return 1*3;
+  }
+  // clang-format on
+  return -1;
+}
+
 std::string renderDataTypeName(const RenderDataType& r) {
   switch (r) {
   case RenderDataType::Vector2Float:
@@ -47,8 +65,6 @@ std::string renderDataTypeName(const RenderDataType& r) {
     return "Int";
   case RenderDataType::UInt:
     return "UInt";
-  case RenderDataType::Index:
-    return "Index";
   case RenderDataType::Vector2UInt:
     return "Vector2UInt";
   case RenderDataType::Vector3UInt:
@@ -57,6 +73,32 @@ std::string renderDataTypeName(const RenderDataType& r) {
     return "Vector4UInt";
   }
   return "";
+}
+
+int sizeInBytes(const RenderDataType& r) {
+  switch (r) {
+  case RenderDataType::Vector2Float:
+    return 2 * 4;
+  case RenderDataType::Vector3Float:
+    return 3 * 4;
+  case RenderDataType::Vector4Float:
+    return 4 * 4;
+  case RenderDataType::Matrix44Float:
+    return 4 * 4 * 4;
+  case RenderDataType::Float:
+    return 4;
+  case RenderDataType::Int:
+    return 4;
+  case RenderDataType::UInt:
+    return 4;
+  case RenderDataType::Vector2UInt:
+    return 2 * 4;
+  case RenderDataType::Vector3UInt:
+    return 3 * 4;
+  case RenderDataType::Vector4UInt:
+    return 4 * 4;
+  }
+  return -1;
 }
 
 int renderDataTypeCountCompatbility(const RenderDataType r1, const RenderDataType r2) {
@@ -100,6 +142,20 @@ std::string getImageOriginRule(ImageOrigin imageOrigin) {
   return "";
 }
 
+std::string deviceBufferTypeName(const DeviceBufferType& d) {
+  switch (d) {
+  case DeviceBufferType::Attribute:
+    return "Attribute";
+  case DeviceBufferType::Texture1d:
+    return "Texture1d";
+  case DeviceBufferType::Texture2d:
+    return "Texture2d";
+  case DeviceBufferType::Texture3d:
+    return "Texture3d";
+  }
+  return "";
+}
+
 namespace render {
 
 AttributeBuffer::AttributeBuffer(RenderDataType dataType_, int arrayCount_)
@@ -107,8 +163,10 @@ AttributeBuffer::AttributeBuffer(RenderDataType dataType_, int arrayCount_)
 
 AttributeBuffer::~AttributeBuffer() {}
 
-TextureBuffer::TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_)
-    : dim(dim_), format(format_), sizeX(sizeX_), sizeY(sizeY_), uniqueID(render::engine->getNextUniqueID()) {
+TextureBuffer::TextureBuffer(int dim_, TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_,
+                             unsigned int sizeZ_)
+    : dim(dim_), format(format_), sizeX(sizeX_), sizeY(sizeY_), sizeZ(sizeZ_),
+      uniqueID(render::engine->getNextUniqueID()) {
   if (sizeX > (1 << 22)) exception("OpenGL error: invalid texture dimensions");
   if (dim > 1 && sizeY > (1 << 22)) exception("OpenGL error: invalid texture dimensions");
 }
@@ -122,6 +180,11 @@ void TextureBuffer::resize(unsigned int newX, unsigned int newY) {
   sizeX = newX;
   sizeY = newY;
 }
+void TextureBuffer::resize(unsigned int newX, unsigned int newY, unsigned int newZ) {
+  sizeX = newX;
+  sizeY = newY;
+  sizeZ = newZ;
+}
 
 unsigned int TextureBuffer::getTotalSize() const {
   switch (dim) {
@@ -130,8 +193,7 @@ unsigned int TextureBuffer::getTotalSize() const {
   case 2:
     return getSizeX() * getSizeY();
   case 3:
-    exception("not implemented");
-    return -1;
+    return getSizeX() * getSizeY() * getSizeZ();
   }
   return -1;
 }
@@ -354,13 +416,17 @@ void Engine::buildEngineGui() {
   }
 }
 
+FrameBuffer& Engine::getDisplayBuffer() { return useAltDisplayBuffer ? *displayBufferAlt : *displayBuffer; }
+
+TextureBuffer& Engine::getFinalSceneColorTexture() { return *sceneColorFinal; }
+
 void Engine::setBackgroundColor(glm::vec3 c) {
-  FrameBuffer& targetBuffer = useAltDisplayBuffer ? *displayBufferAlt : *displayBuffer;
+  FrameBuffer& targetBuffer = getDisplayBuffer();
   targetBuffer.clearColor = c;
 }
 
 void Engine::setBackgroundAlpha(float newAlpha) {
-  FrameBuffer& targetBuffer = useAltDisplayBuffer ? *displayBufferAlt : *displayBuffer;
+  FrameBuffer& targetBuffer = getDisplayBuffer();
   targetBuffer.clearAlpha = newAlpha;
 }
 
@@ -370,13 +436,13 @@ void Engine::setCurrentPixelScaling(float val) { currPixelScale = val; }
 float Engine::getCurrentPixelScaling() { return currPixelScale; }
 
 void Engine::bindDisplay() {
-  FrameBuffer& targetBuffer = useAltDisplayBuffer ? *displayBufferAlt : *displayBuffer;
+  FrameBuffer& targetBuffer = getDisplayBuffer();
   targetBuffer.bindForRendering();
 }
 
 
 void Engine::clearDisplay() {
-  FrameBuffer& targetBuffer = useAltDisplayBuffer ? *displayBufferAlt : *displayBuffer;
+  FrameBuffer& targetBuffer = getDisplayBuffer();
   targetBuffer.clear();
 }
 
@@ -460,29 +526,38 @@ void Engine::applyLightingTransform(std::shared_ptr<TextureBuffer>& texture) {
     currLightingTransparencyMode = transparencyMode;
   }
 
-  mapLight->setUniform("u_exposure", exposure);
-  mapLight->setUniform("u_whiteLevel", whiteLevel);
-  mapLight->setUniform("u_gamma", gamma);
+  mapLight->setUniform("u_bgColor", glm::vec3{view::bgColor[0], view::bgColor[1], view::bgColor[2]});
+  mapLight->setUniform("u_bgAlpha", view::bgColor[3]);
+  setTonemapUniforms(*mapLight);
   mapLight->setTextureFromBuffer("t_image", texture.get());
 
   glm::vec2 texelSize{1. / texture->getSizeX(), 1. / texture->getSizeY()};
   mapLight->setUniform("u_texelSize", texelSize);
 
-  if (lightCopy) {
-    setBlendMode(BlendMode::Disable);
-  } else {
-    setBlendMode(BlendMode::AlphaOver);
-  }
+  setBlendMode(BlendMode::Disable);
   render::engine->setDepthMode(DepthMode::Disable);
   mapLight->draw();
 }
 
+void Engine::setTonemapUniforms(ShaderProgram& p) {
+  p.setUniform("u_exposure", exposure);
+  p.setUniform("u_whiteLevel", whiteLevel);
+  p.setUniform("u_gamma", gamma);
+}
+
 void Engine::setMaterial(ShaderProgram& program, const std::string& mat) {
   const Material& m = getMaterial(mat);
-  program.setTextureFromBuffer("t_mat_r", m.textureBuffers[0].get());
-  program.setTextureFromBuffer("t_mat_g", m.textureBuffers[1].get());
-  program.setTextureFromBuffer("t_mat_b", m.textureBuffers[2].get());
-  program.setTextureFromBuffer("t_mat_k", m.textureBuffers[3].get());
+  if (m.textureBuffers[0]) program.setTextureFromBuffer("t_mat_r", m.textureBuffers[0].get());
+  if (m.textureBuffers[1]) program.setTextureFromBuffer("t_mat_g", m.textureBuffers[1].get());
+  if (m.textureBuffers[2]) program.setTextureFromBuffer("t_mat_b", m.textureBuffers[2].get());
+  if (m.textureBuffers[3]) program.setTextureFromBuffer("t_mat_k", m.textureBuffers[3].get());
+}
+
+void Engine::setMaterialUniforms(ShaderProgram& program, const std::string& mat) {
+  const Material& m = getMaterial(mat);
+  if (m.setUniforms) {
+    m.setUniforms(program);
+  }
 }
 
 void Engine::renderBackground() {
@@ -695,7 +770,9 @@ void Engine::addSlicePlane(std::string uniquePostfix) {
   slicePlaneCount++;
 
   // Add rules
-  std::vector<std::string> newRules{"SLICE_PLANE_CULL_" + uniquePostfix};
+  std::vector<std::string> newRules{"SLICE_PLANE_CULL_" + uniquePostfix,
+                                    "SLICE_PLANE_VOLUMEGRID_CULL_" + uniquePostfix};
+
   defaultRules_sceneObject.insert(defaultRules_sceneObject.end(), newRules.begin(), newRules.end());
   defaultRules_pick.insert(defaultRules_pick.end(), newRules.begin(), newRules.end());
 
@@ -707,7 +784,8 @@ void Engine::removeSlicePlane(std::string uniquePostfix) {
 
   slicePlaneCount--;
   // Remove the (last occurence of the) rules we added
-  std::vector<std::string> newRules{"SLICE_PLANE_CULL_" + uniquePostfix};
+  std::vector<std::string> newRules{"SLICE_PLANE_CULL_" + uniquePostfix,
+                                    "SLICE_PLANE_VOLUMEGRID_CULL_" + uniquePostfix};
   auto deleteLast = [&](std::vector<std::string>& vec, std::string target) {
     for (size_t i = vec.size(); i > 0; i--) {
       if (vec[i - 1] == target) {
@@ -796,9 +874,10 @@ void Engine::loadDefaultMaterial(std::string name) {
 
   Material* newMaterial = new Material();
   newMaterial->name = name;
+  newMaterial->rules = {"LIGHT_MATCAP"};
 
-  std::array<unsigned char const*, 4> buff;
-  std::array<size_t, 4> buffSize;
+  std::array<unsigned char const*, 4> buff{nullptr, nullptr, nullptr, nullptr};
+  std::array<size_t, 4> buffSize{0, 0, 0, 0};
 
   // clang-format off
   if(name == "clay") {
@@ -824,10 +903,9 @@ void Engine::loadDefaultMaterial(std::string name) {
   }
   else if(name == "flat") {
     newMaterial->supportsRGB = true;
-    buff[0] = &bindata_flat_r[0]; buffSize[0] = bindata_flat_r.size();
-    buff[1] = &bindata_flat_g[0]; buffSize[1] = bindata_flat_g.size();
-    buff[2] = &bindata_flat_b[0]; buffSize[2] = bindata_flat_b.size();
-    buff[3] = &bindata_flat_k[0]; buffSize[3] = bindata_flat_k.size();
+    newMaterial->rules = {"LIGHT_PASSTHRU", "INVERSE_TONEMAP"};
+    newMaterial->setUniforms = [&](ShaderProgram& p){ setTonemapUniforms(p); };
+
   } 
   else if(name == "mud") {
     newMaterial->supportsRGB = false;
@@ -850,11 +928,13 @@ void Engine::loadDefaultMaterial(std::string name) {
   // clang-format on
 
   for (int i = 0; i < 4; i++) {
-    int width, height, nComp;
-    float* data = stbi_loadf_from_memory(buff[i], buffSize[i], &width, &height, &nComp, 3);
-    if (!data) exception("failed to load material");
-    newMaterial->textureBuffers[i] = loadMaterialTexture(data, width, height);
-    stbi_image_free(data);
+    if (buff[i]) {
+      int width, height, nComp;
+      float* data = stbi_loadf_from_memory(buff[i], buffSize[i], &width, &height, &nComp, 3);
+      if (!data) exception("failed to load material");
+      newMaterial->textureBuffers[i] = loadMaterialTexture(data, width, height);
+      stbi_image_free(data);
+    }
   }
 
   materials.emplace_back(newMaterial);
@@ -872,6 +952,7 @@ void Engine::loadBlendableMaterial(std::string matName, std::array<std::string, 
   Material* newMaterial = new Material();
   newMaterial->name = matName;
   newMaterial->supportsRGB = true;
+  newMaterial->rules = {"LIGHT_MATCAP"};
   materials.emplace_back(newMaterial);
 
   // Load each of the four components
@@ -900,6 +981,7 @@ void Engine::loadStaticMaterial(std::string matName, std::string filename) {
   Material* newMaterial = new Material();
   newMaterial->name = matName;
   newMaterial->supportsRGB = false;
+  newMaterial->rules = {"LIGHT_MATCAP"};
   materials.emplace_back(newMaterial);
 
   // Load each of the four components
@@ -948,6 +1030,16 @@ Material& Engine::getMaterial(const std::string& name) {
 
   exception("unrecognized material name: " + name);
   return *materials[0];
+}
+
+std::vector<std::string> Engine::addMaterialRules(std::string materialName, std::vector<std::string> initRules) {
+  Material& material = getMaterial(materialName);
+
+  for (const std::string& s : material.rules) {
+    initRules.push_back(s);
+  }
+
+  return initRules;
 }
 
 void Engine::loadColorMap(std::string cmapName, std::string filename) {

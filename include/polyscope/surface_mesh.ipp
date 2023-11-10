@@ -2,7 +2,9 @@
 
 
 #include "polyscope/utilities.h"
+
 #include <stdexcept>
+
 namespace polyscope {
 
 // Shorthand to add a mesh to polyscope
@@ -108,7 +110,7 @@ void SurfaceMesh::setEdgePermutation(const T& perm, size_t expectedSize) {
     return;
   }
 
-  // validateSize(perm, edgeDataSize, "edge permutation for " + name);
+  validateSize(perm, nEdges(), "edge permutation for " + name);
   edgePerm = standardizeArray<size_t, T>(perm);
 
   edgeDataSize = expectedSize;
@@ -136,7 +138,7 @@ void SurfaceMesh::setHalfedgePermutation(const T& perm, size_t expectedSize) {
     return;
   }
 
-  validateSize(perm, halfedgeDataSize, "halfedge permutation for " + name);
+  validateSize(perm, nHalfedges(), "halfedge permutation for " + name);
   halfedgePerm = standardizeArray<size_t, T>(perm);
 
   halfedgeDataSize = expectedSize;
@@ -150,21 +152,51 @@ void SurfaceMesh::setHalfedgePermutation(const T& perm, size_t expectedSize) {
   markHalfedgesAsUsed();
 }
 
+template <class T>
+void SurfaceMesh::setCornerPermutation(const T& perm, size_t expectedSize) {
+
+  // attempt to catch cases where the user sets a permutation after already adding quantities which would use the
+  // permutation (this is unsupported and will cause bad things)
+  if (triangleAllCornerInds.size() > 0) {
+    exception(
+        "SurfaceMesh " + name +
+        ": a corner index permutation was set after quantities have already used the default permutation. This is "
+        "not supported, the corner index must be specified before any corner-value data is added.");
+    return;
+  }
+
+  validateSize(perm, nCorners(), "corner permutation for " + name);
+  cornerPerm = standardizeArray<size_t, T>(perm);
+
+  cornerDataSize = expectedSize;
+  if (cornerDataSize == 0) {
+    // Find max element to set the data size
+    for (size_t i : cornerPerm) {
+      cornerDataSize = std::max(cornerDataSize, i + 1);
+    }
+  }
+
+  markCornersAsUsed();
+}
+
 
 template <class T>
 void SurfaceMesh::setAllPermutations(const std::array<std::pair<T, size_t>, 5>& perms) {
   // (kept for backward compatbility only)
   // forward to the 3-arg version, ignoring the unused ones
-  setAllPermutations(std::array<std::pair<T, size_t>, 2>{perms[2], perms[3]});
+  setAllPermutations(std::array<std::pair<T, size_t>, 3>{perms[2], perms[3], perms[4]});
 }
 
 template <class T>
-void SurfaceMesh::setAllPermutations(const std::array<std::pair<T, size_t>, 2>& perms) {
+void SurfaceMesh::setAllPermutations(const std::array<std::pair<T, size_t>, 3>& perms) {
   if (perms[0].first.size() > 0) {
     setEdgePermutation(perms[0].first, perms[0].second);
   }
   if (perms[1].first.size() > 0) {
     setHalfedgePermutation(perms[1].first, perms[1].second);
+  }
+  if (perms[2].first.size() > 0) {
+    setCornerPermutation(perms[2].first, perms[2].second);
   }
 }
 
@@ -186,6 +218,31 @@ SurfaceFaceColorQuantity* SurfaceMesh::addFaceColorQuantity(std::string name, co
   validateSize<T>(colors, faceDataSize, "face color quantity " + name);
   return addFaceColorQuantityImpl(name, standardizeVectorArray<glm::vec3, 3>(colors));
 }
+
+template <class T>
+SurfaceTextureColorQuantity*
+SurfaceMesh::addTextureColorQuantity(std::string name, SurfaceParameterizationQuantity& param, size_t dimX, size_t dimY,
+                                     const T& colors, ImageOrigin imageOrigin) {
+  validateSize<T>(colors, dimX * dimY, "texture color quantity " + name);
+  return addTextureColorQuantityImpl(name, param, dimX, dimY, standardizeVectorArray<glm::vec3, 3>(colors),
+                                     imageOrigin);
+}
+
+template <class T>
+SurfaceTextureColorQuantity* SurfaceMesh::addTextureColorQuantity(std::string name, std::string paramName, size_t dimX,
+                                                                  size_t dimY, const T& colors,
+                                                                  ImageOrigin imageOrigin) {
+
+
+  SurfaceParameterizationQuantity* param = getParameterization(paramName);
+  if (!param) {
+    exception("could not find surface parameterization " + paramName);
+  }
+
+  // call the main adder
+  return addTextureColorQuantity(name, *param, dimX, dimY, colors, imageOrigin);
+}
+
 
 template <class T>
 SurfaceVertexScalarQuantity* SurfaceMesh::addVertexDistanceQuantity(std::string name, const T& distances) {
@@ -258,6 +315,27 @@ SurfaceCornerScalarQuantity* SurfaceMesh::addCornerScalarQuantity(std::string na
   return addCornerScalarQuantityImpl(name, standardizeArray<double, T>(data), type);
 }
 
+template <class T>
+SurfaceTextureScalarQuantity*
+SurfaceMesh::addTextureScalarQuantity(std::string name, SurfaceParameterizationQuantity& param, size_t dimX,
+                                      size_t dimY, const T& values, ImageOrigin imageOrigin, DataType type) {
+  validateSize<T>(values, dimX * dimY, "texture color quantity " + name);
+  return addTextureScalarQuantityImpl(name, param, dimX, dimY, standardizeArray<double, T>(values), imageOrigin, type);
+}
+
+template <class T>
+SurfaceTextureScalarQuantity* SurfaceMesh::addTextureScalarQuantity(std::string name, std::string paramName,
+                                                                    size_t dimX, size_t dimY, const T& values,
+                                                                    ImageOrigin imageOrigin, DataType type) {
+
+  SurfaceParameterizationQuantity* param = getParameterization(paramName);
+  if (!param) {
+    exception("could not find surface parameterization " + paramName);
+  }
+
+  // call the main adder
+  return addTextureScalarQuantity(name, *param, dimX, dimY, values, imageOrigin, type);
+}
 
 template <class T>
 SurfaceVertexVectorQuantity* SurfaceMesh::addVertexVectorQuantity(std::string name, const T& vectors,
@@ -293,21 +371,30 @@ SurfaceFaceVectorQuantity* SurfaceMesh::addFaceVectorQuantity2D(std::string name
   return addFaceVectorQuantityImpl(name, vectors3D, vectorType);
 }
 
-template <class T>
+template <class T, class BX, class BY>
 SurfaceFaceTangentVectorQuantity* SurfaceMesh::addFaceTangentVectorQuantity(std::string name, const T& vectors,
+                                                                            const BX& basisX, const BY& basisY,
                                                                             int nSym, VectorType vectorType) {
+  validateSize(vectors, faceDataSize, "face tangent vector data " + name);
+  validateSize(basisX, faceDataSize, "face tangent vector basisX " + name);
+  validateSize(basisY, faceDataSize, "face tangent vector basisY " + name);
 
-  validateSize(vectors, faceDataSize, "face tangent vector quantity " + name);
-  return addFaceTangentVectorQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(vectors), nSym, vectorType);
+  return addFaceTangentVectorQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(vectors),
+                                          standardizeVectorArray<glm::vec3, 3>(basisX),
+                                          standardizeVectorArray<glm::vec3, 3>(basisY), nSym, vectorType);
 }
-
-
-template <class T>
+template <class T, class BX, class BY>
 SurfaceVertexTangentVectorQuantity* SurfaceMesh::addVertexTangentVectorQuantity(std::string name, const T& vectors,
+                                                                                const BX& basisX, const BY& basisY,
                                                                                 int nSym, VectorType vectorType) {
 
-  validateSize(vectors, vertexDataSize, "vertex tangent vector quantity " + name);
-  return addVertexTangentVectorQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(vectors), nSym, vectorType);
+  validateSize(vectors, vertexDataSize, "vertex tangent vector data " + name);
+  validateSize(basisX, vertexDataSize, "vertex tangent vector basisX " + name);
+  validateSize(basisY, vertexDataSize, "vertex tangent vector basisY " + name);
+
+  return addVertexTangentVectorQuantityImpl(name, standardizeVectorArray<glm::vec2, 2>(vectors),
+                                            standardizeVectorArray<glm::vec3, 3>(basisX),
+                                            standardizeVectorArray<glm::vec3, 3>(basisY), nSym, vectorType);
 }
 
 
@@ -323,43 +410,6 @@ SurfaceOneFormTangentVectorQuantity* SurfaceMesh::addOneFormTangentVectorQuantit
   validateSize(data, edgeDataSize, "one form tangent vector quantity " + name);
   return addOneFormTangentVectorQuantityImpl(name, standardizeArray<double, T>(data),
                                              standardizeArray<char, O>(orientations));
-}
-
-
-template <class T>
-void SurfaceMesh::setVertexTangentBasisX(const T& vectors) {
-  validateSize(vectors, vertexDataSize, "vertex tangent basis X");
-  setVertexTangentBasisXImpl(standardizeVectorArray<glm::vec3, 3>(vectors));
-}
-
-template <class T>
-void SurfaceMesh::setVertexTangentBasisX2D(const T& vectors) {
-  validateSize(vectors, vertexDataSize, "vertex tangent basis X");
-
-  std::vector<glm::vec3> vec3D = standardizeVectorArray<glm::vec3, 2>(vectors);
-  for (glm::vec3& v : vec3D) {
-    v.z = 0.;
-  }
-
-  setVertexTangentBasisXImpl(vec3D);
-}
-
-template <class T>
-void SurfaceMesh::setFaceTangentBasisX(const T& vectors) {
-  validateSize(vectors, faceDataSize, "face tangent basis X");
-  setFaceTangentBasisXImpl(standardizeVectorArray<glm::vec3, 3>(vectors));
-}
-
-template <class T>
-void SurfaceMesh::setFaceTangentBasisX2D(const T& vectors) {
-  validateSize(vectors, faceDataSize, "face tangent basis X");
-
-  std::vector<glm::vec3> vec3D = standardizeVectorArray<glm::vec3, 2>(vectors);
-  for (glm::vec3& v : vec3D) {
-    v.z = 0.;
-  }
-
-  setFaceTangentBasisXImpl(vec3D);
 }
 
 

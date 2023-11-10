@@ -32,11 +32,7 @@ void DepthRenderImageQuantity::drawDelayed() {
   program->setUniform("u_viewport", render::engine->getCurrentViewport());
   program->setUniform("u_baseColor", color.get());
   program->setUniform("u_transparency", transparency.get());
-
-  // make sure we have actual depth testing enabled
-  render::engine->setDepthMode(DepthMode::LEqual);
-  // render::engine->applyTransparencySettings();
-  render::engine->setBlendMode(BlendMode::Over);
+  render::engine->setMaterialUniforms(*program, material.get());
 
   // draw
   program->draw();
@@ -70,29 +66,32 @@ void DepthRenderImageQuantity::refresh() {
 
 
 void DepthRenderImageQuantity::prepare() {
-  prepareGeometryBuffers();
 
   // no extra data to push for this one
 
   // Create the sourceProgram
+  // clang-format off
   program = render::engine->requestShader("TEXTURE_DRAW_RENDERIMAGE_PLAIN",
-                                          {getImageOriginRule(imageOrigin), "LIGHT_MATCAP", "SHADE_BASECOLOR"},
-                                          render::ShaderReplacementDefaults::Process);
+    render::engine->addMaterialRules(material.get(),
+      {
+        getImageOriginRule(imageOrigin), 
+        hasNormals ? "SHADE_NORMAL_FROM_TEXTURE" : "SHADE_NORMAL_FROM_VIEWPOS_VAR",
+        "SHADE_BASECOLOR",
+      }
+    ), 
+    render::ShaderReplacementDefaults::Process);
+  // clang-format on
 
   program->setAttribute("a_position", render::engine->screenTrianglesCoords());
-  program->setTextureFromBuffer("t_depth", textureDepth.get());
-  program->setTextureFromBuffer("t_normal", textureNormal.get());
+  program->setTextureFromBuffer("t_depth", depths.getRenderTextureBuffer().get());
+  if (hasNormals) {
+    program->setTextureFromBuffer("t_normal", normals.getRenderTextureBuffer().get());
+  }
   render::engine->setMaterial(*program, material.get());
 }
 
 
 std::string DepthRenderImageQuantity::niceName() { return name + " (render image)"; }
-
-DepthRenderImageQuantity* DepthRenderImageQuantity::setEnabled(bool newEnabled) {
-  enabled = newEnabled;
-  requestRedraw();
-  return this;
-}
 
 DepthRenderImageQuantity* DepthRenderImageQuantity::setColor(glm::vec3 newVal) {
   color = newVal;

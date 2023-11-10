@@ -1,7 +1,7 @@
 // Copyright 2017-2023, Nicholas Sharp and the Polyscope contributors. https://polyscope.run
 
 
-#include "polyscope/image_quantity.h"
+#include "polyscope/image_quantity_base.h"
 
 #include "polyscope/camera_view.h"
 
@@ -64,6 +64,7 @@ void ImageQuantity::setShowFullscreen(bool newVal) {
   if (newVal && isEnabled()) {
     // if drawing fullscreen, disable anything else which was already drawing fullscreen
     disableAllFullscreenArtists();
+    setEnabled(true);
   }
   isShowingFullscreen = newVal;
   requestRedraw();
@@ -91,6 +92,42 @@ void ImageQuantity::setTransparency(float newVal) {
 float ImageQuantity::getTransparency() { return transparency.get(); }
 
 bool ImageQuantity::parentIsCameraView() { return parentStructureCameraView != nullptr; }
+
+void ImageQuantity::buildImageOptionsUI() {
+
+  if (ImGui::MenuItem("Show in ImGui window", NULL, getShowInImGuiWindow()))
+    setShowInImGuiWindow(!getShowInImGuiWindow());
+  if (ImGui::MenuItem("Show fullscreen", NULL, getShowFullscreen())) setShowFullscreen(!getShowFullscreen());
+
+  if (parentIsCameraView()) {
+    if (ImGui::MenuItem("Show in camera billboard", NULL, getShowInCameraBillboard()))
+      setShowInCameraBillboard(!getShowInCameraBillboard());
+  }
+
+  if (ImGui::SliderFloat("transparency", &transparency.get(), 0, 1., "%.3f")) {
+    transparency.manuallyChanged();
+    requestRedraw();
+  }
+}
+
+void ImageQuantity::buildImageUI() {
+
+  if (getShowFullscreen()) {
+
+    ImGui::PushItemWidth(100);
+    if (ImGui::SliderFloat("transparency", &transparency.get(), 0.f, 1.f)) {
+      transparency.manuallyChanged();
+      requestRedraw();
+    }
+    ImGui::PopItemWidth();
+  }
+
+  if (isEnabled() && parent.isEnabled()) {
+    if (getShowInImGuiWindow()) {
+      showInImGuiWindow();
+    }
+  }
+}
 
 
 } // namespace polyscope

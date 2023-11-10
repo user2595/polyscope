@@ -9,12 +9,14 @@
 
 #include "polyscope/camera_view.h"
 #include "polyscope/curve_network.h"
-#include "polyscope/implicit_surface.h"
+#include "polyscope/implicit_helpers.h"
 #include "polyscope/pick.h"
 #include "polyscope/point_cloud.h"
 #include "polyscope/polyscope.h"
+#include "polyscope/simple_triangle_mesh.h"
 #include "polyscope/surface_mesh.h"
 #include "polyscope/types.h"
+#include "polyscope/volume_grid.h"
 #include "polyscope/volume_mesh.h"
 
 // Which polyscope backend to use for testing
@@ -29,6 +31,8 @@ protected:
   static void SetUpTestSuite() {
     polyscope::init(testBackend);
     polyscope::options::enableRenderErrorChecks = true;
+    polyscope::options::errorsThrowExceptions = true;
+    polyscope::options::hideWindowAfterShow = false;
   }
 
   // Per-test-suite tear-down.
@@ -104,6 +108,13 @@ inline polyscope::SurfaceMesh* registerTriangleMesh(std::string name = "test1") 
   std::vector<std::vector<size_t>> faces;
   std::tie(points, faces) = getTriangleMesh();
   return polyscope::registerSurfaceMesh(name, points, faces);
+}
+
+inline polyscope::SimpleTriangleMesh* registerSimpleTriangleMesh(std::string name = "test1") {
+  std::vector<glm::vec3> points;
+  std::vector<std::vector<size_t>> faces;
+  std::tie(points, faces) = getTriangleMesh();
+  return polyscope::registerSimpleTriangleMesh(name, points, faces);
 }
 
 inline std::tuple<std::vector<glm::vec3>, std::vector<std::array<size_t, 2>>> getCurveNetwork() {

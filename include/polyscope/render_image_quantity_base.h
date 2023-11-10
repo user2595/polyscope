@@ -5,6 +5,9 @@
 #include "polyscope/polyscope.h"
 
 #include "polyscope/floating_quantity.h"
+#include "polyscope/fullscreen_artist.h"
+#include "polyscope/render/managed_buffer.h"
+#include "polyscope/structure.h"
 
 #include <vector>
 
@@ -16,7 +19,7 @@
 
 namespace polyscope {
 
-class RenderImageQuantityBase : public FloatingQuantity {
+class RenderImageQuantityBase : public FloatingQuantity, public FullscreenArtist {
 
 public:
   RenderImageQuantityBase(Structure& parent_, std::string name, size_t dimX, size_t dimY,
@@ -30,9 +33,16 @@ public:
 
   size_t nPix();
 
-  void updateGeometryBuffers(const std::vector<float>& newDepthData, const std::vector<glm::vec3>& newNormalData);
+  render::ManagedBuffer<float> depths;
+  render::ManagedBuffer<glm::vec3> normals;
+
+  void updateBaseBuffers(const std::vector<float>& newDepthData, const std::vector<glm::vec3>& newNormalData);
+
+  virtual void disableFullscreenDrawing() override;
 
   // == Setters and getters
+
+  virtual RenderImageQuantityBase* setEnabled(bool newEnabled) override;
 
   // Material
   RenderImageQuantityBase* setMaterial(std::string name);
@@ -42,20 +52,26 @@ public:
   RenderImageQuantityBase* setTransparency(float newVal);
   float getTransparency();
 
+  // Fullscreen compositing
+  // This controls whether multiple of these been shown fullscreen at the same time, vs do they dominate each other and
+  // allow only one to be enabled. By default, false, only one can be enabled.
+  RenderImageQuantityBase* setAllowFullscreenCompositing(bool newVal);
+  bool getAllowFullscreenCompositing();
+
 
 protected:
   const size_t dimX, dimY;
+  const bool hasNormals;
   ImageOrigin imageOrigin;
 
   // Store the raw data
-  std::vector<float> depthData;
-  std::vector<glm::vec3> normalData;
+  std::vector<float> depthsData;
+  std::vector<glm::vec3> normalsData;
 
   // === Visualization parameters
   PersistentValue<std::string> material;
   PersistentValue<float> transparency;
-
-  std::shared_ptr<render::TextureBuffer> textureDepth, textureNormal;
+  PersistentValue<bool> allowFullscreenCompositing;
 
   // Helpers
   void prepareGeometryBuffers();

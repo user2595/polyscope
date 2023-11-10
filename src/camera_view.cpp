@@ -24,8 +24,8 @@ const std::string CameraView::structureTypeName = "Camera View";
 
 // Constructor
 CameraView::CameraView(std::string name, const CameraParameters& params_)
-    : QuantityStructure<CameraView>(name, structureTypeName), params(std::move(params_)),
-      widgetFocalLength(uniquePrefix() + "#widgetFocalLength", relativeValue(0.1)),
+    : QuantityStructure<CameraView>(name, structureTypeName), params(params_),
+      widgetFocalLength(uniquePrefix() + "#widgetFocalLength", relativeValue(0.05)),
       widgetThickness(uniquePrefix() + "#widgetThickness", 0.02),
       widgetColor(uniquePrefix() + "#widgetColor", glm::vec3{0., 0., 0.}) {
 
@@ -43,6 +43,14 @@ void CameraView::draw() {
     prepare();
   }
 
+
+  // The camera frame geometry attributes depend on the scene length scale. If the length scale has changed, regenerate
+  // those attributes. (It would be better if we could implement the frame geometry in uniforms only, so we don't have
+  // to do this)
+  if (preparedLengthScale != state::lengthScale) {
+    fillCameraWidgetGeometry(nodeProgram.get(), edgeProgram.get(), nullptr);
+  }
+
   // Set program uniforms
   setStructureUniforms(*nodeProgram);
   setStructureUniforms(*edgeProgram);
@@ -58,6 +66,10 @@ void CameraView::draw() {
   edgeProgram->setUniform("u_viewport", render::engine->getCurrentViewport());
   edgeProgram->setUniform("u_radius", getWidgetFocalLength() * getWidgetThickness());
   edgeProgram->setUniform("u_baseColor", widgetColor.get());
+
+
+  render::engine->setMaterialUniforms(*nodeProgram, material);
+  render::engine->setMaterialUniforms(*edgeProgram, material);
 
   // Draw the camera view wireframe
   nodeProgram->draw();
@@ -97,6 +109,13 @@ void CameraView::drawPick() {
     preparePick();
   }
 
+  // The camera frame geometry attributes depend on the scene length scale. If the length scale has changed, regenerate
+  // those attributes. (It would be better if we could implement the frame geometry in uniforms only, so we don't have
+  // to do this)
+  if (pickPreparedLengthScale != state::lengthScale) {
+    fillCameraWidgetGeometry(nullptr, nullptr, pickFrameProgram.get());
+  }
+
   // Set uniforms
   setStructureUniforms(*pickFrameProgram);
 
@@ -108,16 +127,19 @@ void CameraView::prepare() {
   {
     std::vector<std::string> rules = addStructureRules({"SHADE_BASECOLOR"});
     if (wantsCullPosition()) rules.push_back("SPHERE_CULLPOS_FROM_CENTER");
+    rules = render::engine->addMaterialRules(material, rules);
     nodeProgram = render::engine->requestShader("RAYCAST_SPHERE", rules);
-    render::engine->setMaterial(*nodeProgram, "flat");
   }
 
   {
     std::vector<std::string> rules = addStructureRules({"SHADE_BASECOLOR"});
     if (wantsCullPosition()) rules.push_back("CYLINDER_CULLPOS_FROM_MID");
+    rules = render::engine->addMaterialRules(material, rules);
     edgeProgram = render::engine->requestShader("RAYCAST_CYLINDER", rules);
-    render::engine->setMaterial(*edgeProgram, "flat");
   }
+
+  render::engine->setMaterial(*nodeProgram, material);
+  render::engine->setMaterial(*edgeProgram, material);
 
   // Fill out the geometry data for the programs
   fillCameraWidgetGeometry(nodeProgram.get(), edgeProgram.get(), nullptr);
@@ -175,6 +197,7 @@ void CameraView::fillCameraWidgetGeometry(render::ShaderProgram* nodeProgram, re
     std::vector<glm::vec3> allPos{root,        frameUpperLeft, frameUpperRight, frameLowerLeft, frameLowerRight,
                                   triangleTop, triangleLeft,   triangleRight};
     nodeProgram->setAttribute("a_position", allPos);
+    preparedLengthScale = state::lengthScale;
   }
 
   if (edgeProgram) {
@@ -239,6 +262,8 @@ void CameraView::fillCameraWidgetGeometry(render::ShaderProgram* nodeProgram, re
         cullPos.push_back(root);
         cullPos.push_back(root);
       }
+
+      pickPreparedLengthScale = state::lengthScale;
     };
 
     addPolygon({root, frameUpperRight, frameUpperLeft});
@@ -249,14 +274,20 @@ void CameraView::fillCameraWidgetGeometry(render::ShaderProgram* nodeProgram, re
     addPolygon({triangleTop, triangleRight, triangleLeft});
 
     pickFrameProgram->setAttribute("a_vertexPositions", positions);
-    pickFrameProgram->setAttribute("a_vertexNormals", normals); // unused
+    // pickFrameProgram->setAttribute("a_vertexNormals", normals); // unused
     pickFrameProgram->setAttribute("a_barycoord", bcoord);
 
     size_t nFaces = 7;
     std::vector<glm::vec3> faceColor(3 * nFaces, pickColor);
     std::vector<std::array<glm::vec3, 3>> tripleColors(3 * nFaces,
                                                        std::array<glm::vec3, 3>{pickColor, pickColor, pickColor});
-    pickFrameProgram->setAttribute<glm::vec3, 3>("a_vertexColors", tripleColors);
+
+
+    std::shared_ptr<render::AttributeBuffer> tripleColorsBuff =
+        render::engine->generateAttributeBuffer(RenderDataType::Vector3Float, 3);
+    tripleColorsBuff->setData(tripleColors);
+
+    pickFrameProgram->setAttribute("a_vertexColors", tripleColorsBuff);
     pickFrameProgram->setAttribute("a_faceColor", faceColor);
     if (wantsCullPosition()) {
       pickFrameProgram->setAttribute("a_cullPos", cullPos);
@@ -377,7 +408,8 @@ void CameraView::setViewToThisCamera(bool withFlight) {
   std::tie(look, up, right) = params.getCameraFrame();
   glm::vec3 root = params.getPosition();
   root += look * getWidgetFocalLength() * 0.01f;
-  CameraParameters adjParams(root, look, up, params.getFoVVerticalDegrees(), params.getAspectRatioWidthOverHeight());
+
+  CameraParameters adjParams(params.intrinsics, CameraExtrinsics::fromVectors(root, look, up));
 
   if (withFlight) {
     view::startFlightTo(adjParams);
@@ -391,7 +423,7 @@ void CameraView::setViewToThisCamera(bool withFlight) {
 
 // === Setters and getters
 
-CameraParameters CameraView::getCameraParameters() { return params; }
+CameraParameters CameraView::getCameraParameters() const { return params; }
 
 CameraView* CameraView::setWidgetFocalLength(float newVal, bool isRelative) {
   widgetFocalLength = ScaledValue<float>(newVal, isRelative);

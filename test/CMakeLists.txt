@@ -30,6 +30,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
     message("Setting gcc-specific options")
     SET(BASE_CXX_FLAGS "${BASE_CXX_FLAGS} -fmax-errors=5")
     SET(DISABLED_WARNINGS "${DISABLED_WARNINGS} -Wno-maybe-uninitialized -Wno-format-zero-length -Wno-unused-but-set-parameter -Wno-unused-but-set-variable")
+    SET(CMAKE_CXX_FLAGS_DEBUG          "-fsanitize=address")
   endif()
   
   SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
@@ -105,10 +106,13 @@ set(TEST_SRCS
   src/curve_network_test.cpp
   src/surface_mesh_test.cpp
   src/volume_mesh_test.cpp
+  src/volume_grid_test.cpp
   src/camera_view_test.cpp
   src/group_test.cpp
   src/floating_test.cpp
   src/combo_test.cpp
+  src/misc_test.cpp
+  src/interop_and_serialization_test.cpp
 )
 
 add_executable(polyscope-test "${TEST_SRCS}")

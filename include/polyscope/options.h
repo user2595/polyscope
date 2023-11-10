@@ -31,6 +31,10 @@ extern bool errorsThrowExceptions;
 // Don't let the main loop run at more than this speed. (-1 disables) (default: 60)
 extern int maxFPS;
 
+// If enable or disable swap synchronization (limits render ray to display refresh rate). (default: true)
+// NOTE: some platforms may ignore the setting.
+extern bool enableVSync;
+
 // Read preferences (window size, etc) from startup file, write to same file on exit (default: true)
 extern bool usePrefsFile;
 
@@ -52,6 +56,9 @@ extern bool invokeUserCallbackForNestedShow;
 
 // If true, focus the Polyscope window when shown (default: false)
 extern bool giveFocusOnShow;
+
+// If true, hide the polyscope window when a show() command finishes (default: true)
+extern bool hideWindowAfterShow;
 
 // === Scene options
 
@@ -82,6 +89,19 @@ extern int transparencyRenderPasses;
 // each frame. The allows advanced users to create their own UIs totally from scratch and circumvent the standard
 // Polyscope UIs. (default: true)
 extern bool buildGui;
+
+// Draw the user gui panel on the right side, if false will be drawn on the left
+// (default: true)
+extern bool userGuiIsOnRightSide;
+
+// Build the built-in gui panels (polyscope & structure menus on the left, selection menu on the right)
+// The difference between this vs. buildGui is whether or not the user gui panel is drawn, this setting does _not_
+// effect the user gui panel. (default: true)
+extern bool buildDefaultGuiPanels;
+
+// If false, Polyscope will not render the scene into the draw buffer
+// (this is useful if you are doing custom rendering and filling the draw buffer yourself)
+extern bool renderScene;
 
 // Should the user call back start out with an imgui window context open (default: true)
 extern bool openImGuiWindowForUserCallback;

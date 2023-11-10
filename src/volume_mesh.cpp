@@ -103,21 +103,21 @@ VolumeMesh::VolumeMesh(std::string name, const std::vector<glm::vec3>& vertexPos
 // == managed quantities
 
 // positions
-vertexPositions(        uniquePrefix() + "vertexPositions",     vertexPositionsData),
+vertexPositions(        this, uniquePrefix() + "vertexPositions",     vertexPositionsData),
 
 // connectivity / indices
-triangleVertexInds(     uniquePrefix() + "triangleVertexInds",  triangleVertexIndsData),
-triangleFaceInds(       uniquePrefix() + "triangleFaceInds",    triangleFaceIndsData),
-triangleCellInds(       uniquePrefix() + "triangleCellInds",    triangleCellIndsData),
+triangleVertexInds(     this, uniquePrefix() + "triangleVertexInds",  triangleVertexIndsData),
+triangleFaceInds(       this, uniquePrefix() + "triangleFaceInds",    triangleFaceIndsData),
+triangleCellInds(       this, uniquePrefix() + "triangleCellInds",    triangleCellIndsData),
 
 // internal triangle data for rendering
-baryCoord(              uniquePrefix() + "baryCoord",           baryCoordData),
-edgeIsReal(             uniquePrefix() + "edgeIsReal",          edgeIsRealData),
-faceType(               uniquePrefix() + "faceType",            faceTypeData),
+baryCoord(              this, uniquePrefix() + "baryCoord",           baryCoordData),
+edgeIsReal(             this, uniquePrefix() + "edgeIsReal",          edgeIsRealData),
+faceType(               this, uniquePrefix() + "faceType",            faceTypeData),
 
 // other internally-computed geometry
-faceNormals(            uniquePrefix() + "faceNormals",         faceNormalsData,        std::bind(&VolumeMesh::computeFaceNormals, this)),
-cellCenters(            uniquePrefix() + "cellCenters",         cellCentersData,        std::bind(&VolumeMesh::computeCellCenters, this)),         
+faceNormals(            this, uniquePrefix() + "faceNormals",         faceNormalsData,        std::bind(&VolumeMesh::computeFaceNormals, this)),
+cellCenters(            this, uniquePrefix() + "cellCenters",         cellCentersData,        std::bind(&VolumeMesh::computeCellCenters, this)),         
 
 
 // == core input data
@@ -436,6 +436,7 @@ void VolumeMesh::draw() {
     glm::mat4 projMat = view::getCameraPerspectiveMatrix();
     program->setUniform("u_baseColor1", getColor());
     program->setUniform("u_baseColor2", getInteriorColor());
+    render::engine->setMaterialUniforms(*program, getMaterial());
 
     program->draw();
   }
@@ -487,7 +488,15 @@ void VolumeMesh::drawPick() {
 }
 
 void VolumeMesh::prepare() {
-  program = render::engine->requestShader("MESH", addVolumeMeshRules({"MESH_PROPAGATE_TYPE_AND_BASECOLOR2_SHADE"}));
+  // clang-format off
+  program = render::engine->requestShader("MESH", 
+      render::engine->addMaterialRules(getMaterial(),
+        addVolumeMeshRules(
+          {"MESH_PROPAGATE_TYPE_AND_BASECOLOR2_SHADE"}
+        )
+      )
+    );
+  // clang-format on
   // Populate draw buffers
   fillGeometryBuffers(*program);
   render::engine->setMaterial(*program, getMaterial());
@@ -567,9 +576,13 @@ void VolumeMesh::preparePick() {
     }
   }
 
+  // === Store data in buffers
 
-  // Store data in buffers
-  pickProgram->setAttribute<glm::vec3, 3>("a_vertexColors", vertexColors);
+  std::shared_ptr<render::AttributeBuffer> vertexColorsBuff =
+      render::engine->generateAttributeBuffer(RenderDataType::Vector3Float, 3);
+  vertexColorsBuff->setData(vertexColors);
+
+  pickProgram->setAttribute("a_vertexColors", vertexColorsBuff);
   pickProgram->setAttribute("a_faceColor", faceColor);
 }
 
@@ -580,7 +593,13 @@ std::vector<std::string> VolumeMesh::addVolumeMeshRules(std::vector<std::string>
 
   if (withSurfaceShade) {
     if (getEdgeWidth() > 0) {
-      initRules.push_back(isSlice ? "SLICE_TETS_MESH_WIREFRAME" : "MESH_WIREFRAME");
+      if (isSlice) {
+        initRules.push_back("SLICE_TETS_MESH_WIREFRAME");
+        initRules.push_back("MESH_WIREFRAME");
+      } else {
+        initRules.push_back("MESH_WIREFRAME_FROM_BARY");
+        initRules.push_back("MESH_WIREFRAME");
+      }
     }
   }
 
@@ -909,11 +928,8 @@ void VolumeMesh::refresh() {
 
 void VolumeMesh::geometryChanged() {
   recomputeGeometryIfPopulated();
-  if (program) fillGeometryBuffers(*program);
-  if (pickProgram) fillGeometryBuffers(*pickProgram);
-  refreshVolumeMeshListeners();
   requestRedraw();
-  QuantityStructure<VolumeMesh>::refresh();
+  QuantityStructure<VolumeMesh>::refresh(); // TODO fixme unneeded, right?
 }
 
 void VolumeMesh::recomputeGeometryIfPopulated() {
@@ -1000,6 +1016,7 @@ double VolumeMesh::getEdgeWidth() { return edgeWidth.get(); }
 
 VolumeMeshVertexColorQuantity* VolumeMesh::addVertexColorQuantityImpl(std::string name,
                                                                       const std::vector<glm::vec3>& colors) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshVertexColorQuantity* q = new VolumeMeshVertexColorQuantity(name, *this, colors);
   addQuantity(q);
   return q;
@@ -1007,6 +1024,7 @@ VolumeMeshVertexColorQuantity* VolumeMesh::addVertexColorQuantityImpl(std::strin
 
 VolumeMeshCellColorQuantity* VolumeMesh::addCellColorQuantityImpl(std::string name,
                                                                   const std::vector<glm::vec3>& colors) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshCellColorQuantity* q = new VolumeMeshCellColorQuantity(name, *this, colors);
   addQuantity(q);
   return q;
@@ -1014,6 +1032,7 @@ VolumeMeshCellColorQuantity* VolumeMesh::addCellColorQuantityImpl(std::string na
 
 VolumeMeshVertexScalarQuantity*
 VolumeMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshVertexScalarQuantity* q = new VolumeMeshVertexScalarQuantity(name, data, *this, type);
   addQuantity(q);
   return q;
@@ -1021,6 +1040,7 @@ VolumeMesh::addVertexScalarQuantityImpl(std::string name, const std::vector<doub
 
 VolumeMeshCellScalarQuantity* VolumeMesh::addCellScalarQuantityImpl(std::string name, const std::vector<double>& data,
                                                                     DataType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshCellScalarQuantity* q = new VolumeMeshCellScalarQuantity(name, data, *this, type);
   addQuantity(q);
   return q;
@@ -1029,6 +1049,7 @@ VolumeMeshCellScalarQuantity* VolumeMesh::addCellScalarQuantityImpl(std::string 
 VolumeMeshVertexVectorQuantity* VolumeMesh::addVertexVectorQuantityImpl(std::string name,
                                                                         const std::vector<glm::vec3>& vectors,
                                                                         VectorType vectorType) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshVertexVectorQuantity* q = new VolumeMeshVertexVectorQuantity(name, vectors, *this, vectorType);
   addQuantity(q);
   return q;
@@ -1037,6 +1058,7 @@ VolumeMeshVertexVectorQuantity* VolumeMesh::addVertexVectorQuantityImpl(std::str
 VolumeMeshCellVectorQuantity*
 VolumeMesh::addCellVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors, VectorType vectorType) {
 
+  checkForQuantityWithNameAndDeleteOrError(name);
   VolumeMeshCellVectorQuantity* q = new VolumeMeshCellVectorQuantity(name, vectors, *this, vectorType);
   addQuantity(q);
   return q;
