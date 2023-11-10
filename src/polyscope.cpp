@@ -9,6 +9,7 @@
 
 #include "imgui.h"
 
+#include "polyscope/options.h"
 #include "polyscope/pick.h"
 #include "polyscope/render/engine.h"
 #include "polyscope/view.h"
@@ -33,12 +34,13 @@ namespace {
 // initialization.
 struct ContextEntry {
   ImGuiContext* context;
-  std::function<void()> callback;
+  std ::function<void()> callback;
   bool drawDefaultUI;
 };
 std::vector<ContextEntry> contextStack;
 
 bool redrawNextFrame = true;
+bool unshowRequested = false;
 
 // Some state about imgui windows to stack them
 float imguiStackMargin = 10;
@@ -118,7 +120,16 @@ void writePrefsFile() {
   o << std::setw(4) << prefsJSON << std::endl;
 }
 
-}; // namespace
+// Helper to get a structure map
+
+std::map<std::string, std::unique_ptr<Structure>>& getStructureMapCreateIfNeeded(std::string typeName) {
+  if (state::structures.find(typeName) == state::structures.end()) {
+    state::structures[typeName] = std::map<std::string, std::unique_ptr<Structure>>();
+  }
+  return state::structures[typeName];
+}
+
+} // namespace
 
 // === Core global functions
 
@@ -254,14 +265,14 @@ void drawStructures() {
 
   // Draw all off the structures registered with polyscope
 
-  for (auto catMap : state::structures) {
-    for (auto s : catMap.second) {
+  for (auto& catMap : state::structures) {
+    for (auto& s : catMap.second) {
       s.second->draw();
     }
   }
 
   // Also render any slice plane geometry
-  for (SlicePlane* s : state::slicePlanes) {
+  for (std::unique_ptr<SlicePlane>& s : state::slicePlanes) {
     s->drawGeometry();
   }
 }
@@ -269,8 +280,8 @@ void drawStructures() {
 void drawStructuresDelayed() {
   // "delayed" drawing allows structures to render things which should be rendered after most of the scene has been
   // drawn
-  for (auto catMap : state::structures) {
-    for (auto s : catMap.second) {
+  for (auto& catMap : state::structures) {
+    for (auto& s : catMap.second) {
       s.second->drawDelayed();
     }
   }
@@ -289,10 +300,13 @@ void processInputEvents() {
   }
 
   bool widgetCapturedMouse = false;
-  for (Widget* w : state::widgets) {
-    widgetCapturedMouse = w->interact();
-    if (widgetCapturedMouse) {
-      break;
+  for (WeakHandle<Widget> wHandle : state::widgets) {
+    if (wHandle.isValid()) {
+      Widget& w = wHandle.get();
+      widgetCapturedMouse = w.interact();
+      if (widgetCapturedMouse) {
+        break;
+      }
     }
   }
 
@@ -385,24 +399,13 @@ void processInputEvents() {
 
   // === Key-press inputs
   if (!io.WantCaptureKeyboard) {
-
-    // ctrl-c
-    if (io.KeyCtrl && render::engine->isKeyPressed('c')) {
-      std::string outData = view::getCameraJson();
-      render::engine->setClipboardText(outData);
-    }
-
-    // ctrl-v
-    if (io.KeyCtrl && render::engine->isKeyPressed('v')) {
-      std::string clipboardData = render::engine->getClipboardText();
-      view::setCameraFromJson(clipboardData, true);
-    }
+    view::processKeyboardNavigation(io);
   }
 }
 
 
 void renderSlicePlanes() {
-  for (SlicePlane* s : state::slicePlanes) {
+  for (std::unique_ptr<SlicePlane>& s : state::slicePlanes) {
     s->draw();
   }
 }
@@ -421,6 +424,8 @@ void renderScene() {
   // If a view has never been set, this will set it to the home view
   view::ensureViewValid();
 
+  if (!options::renderScene) return;
+
   if (render::engine->getTransparencyMode() == TransparencyMode::Pretty) {
     // Special depth peeling case: multiple render passes
     // We will perform several "peeled" rounds of rendering in to the usual scene buffer. After each, we will manually
@@ -433,7 +438,7 @@ void renderScene() {
     render::engine->sceneBufferFinal->clearAlpha = 0;
     render::engine->sceneBufferFinal->clear();
 
-    render::engine->setDepthMode(); // we need depth to be enabled for the clear below to do anything
+    render::engine->setDepthMode(DepthMode::Less); // we need depth to be enabled for the clear below to do anything
     render::engine->sceneDepthMinFrame->clear();
 
 
@@ -458,7 +463,7 @@ void renderScene() {
       // Composite the result of this pass in to the result buffer
       render::engine->sceneBufferFinal->bind();
       render::engine->setDepthMode(DepthMode::Disable);
-      render::engine->setBlendMode(BlendMode::Under);
+      render::engine->setBlendMode(BlendMode::AlphaUnder);
       render::engine->compositePeel->draw();
 
       // Update the minimum depth texture
@@ -480,7 +485,7 @@ void renderScene() {
 
     render::engine->sceneBuffer->blitTo(render::engine->sceneBufferFinal.get());
   }
-} // namespace
+}
 
 void renderSceneToScreen() {
   render::engine->bindDisplay();
@@ -491,6 +496,47 @@ void renderSceneToScreen() {
   } else {
     render::engine->applyLightingTransform(render::engine->sceneColorFinal);
   }
+}
+
+void purgeWidgets() {
+  // remove any widget objects which are no longer defined
+  state::widgets.erase(std::remove_if(state::widgets.begin(), state::widgets.end(),
+                                      [](const WeakHandle<Widget>& w) { return !w.isValid(); }),
+                       state::widgets.end());
+}
+
+void userGuiBegin() {
+
+  ImVec2 userGuiLoc;
+  if (options::userGuiIsOnRightSide) {
+    // right side
+    userGuiLoc = ImVec2(view::windowWidth - (rightWindowsWidth + imguiStackMargin), imguiStackMargin);
+    ImGui::SetNextWindowSize(ImVec2(rightWindowsWidth, 0.));
+  } else {
+    // left side
+    if (options::buildDefaultGuiPanels) {
+      userGuiLoc = ImVec2(leftWindowsWidth + 3 * imguiStackMargin, imguiStackMargin);
+    } else {
+      userGuiLoc = ImVec2(imguiStackMargin, imguiStackMargin);
+    }
+  }
+
+  ImGui::PushID("user_callback");
+  ImGui::SetNextWindowPos(userGuiLoc);
+
+  ImGui::Begin("##Command UI", nullptr);
+}
+
+void userGuiEnd() {
+
+  if (options::userGuiIsOnRightSide) {
+    rightWindowsWidth = ImGui::GetWindowWidth();
+    lastWindowHeightUser = imguiStackMargin + ImGui::GetWindowHeight();
+  } else {
+    lastWindowHeightUser = 0;
+  }
+  ImGui::End();
+  ImGui::PopID();
 }
 
 } // namespace
@@ -567,13 +613,30 @@ void buildPolyscopeGui() {
   // Appearance options tree
   render::engine->buildEngineGui();
 
-  // Debug options tree
+  // Render options tree
   ImGui::SetNextTreeNodeOpen(false, ImGuiCond_FirstUseEver);
-  if (ImGui::TreeNode("Debug")) {
+  if (ImGui::TreeNode("Render")) {
 
     // fps
     ImGui::Text("Rolling: %.1f ms/frame (%.1f fps)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::Text("Last: %.1f ms/frame (%.1f fps)", ImGui::GetIO().DeltaTime * 1000.f, 1.f / ImGui::GetIO().DeltaTime);
+
+    ImGui::PushItemWidth(40);
+    if (ImGui::InputInt("max fps", &options::maxFPS, 0)) {
+      if (options::maxFPS < 1 && options::maxFPS != -1) {
+        options::maxFPS = -1;
+      }
+    }
+
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    ImGui::Checkbox("vsync", &options::enableVSync);
+
+    ImGui::TreePop();
+  }
+
+  ImGui::SetNextTreeNodeOpen(false, ImGuiCond_FirstUseEver);
+  if (ImGui::TreeNode("Debug")) {
 
     if (ImGui::Button("Force refresh")) {
       refresh();
@@ -610,7 +673,7 @@ void buildStructureGui() {
   // only show groups if there are any
   if (state::groups.size() > 0) {
     if (ImGui::CollapsingHeader("Groups", ImGuiTreeNodeFlags_DefaultOpen)) {
-      for (auto x : state::groups) {
+      for (auto& x : state::groups) {
         if (x.second->isRootGroup()) {
           x.second->buildUI();
         }
@@ -618,10 +681,10 @@ void buildStructureGui() {
     }
   }
 
-  for (auto catMapEntry : state::structures) {
+  for (auto& catMapEntry : state::structures) {
     std::string catName = catMapEntry.first;
 
-    std::map<std::string, Structure*>& structureMap = catMapEntry.second;
+    std::map<std::string, std::unique_ptr<Structure>>& structureMap = catMapEntry.second;
 
     ImGui::PushID(catName.c_str()); // ensure there are no conflicts with
                                     // identically-named labels
@@ -634,7 +697,7 @@ void buildStructureGui() {
         structureMap.begin()->second->buildSharedStructureUI();
       }
 
-      for (auto x : structureMap) {
+      for (auto& x : structureMap) {
         ImGui::SetNextTreeNodeOpen(structureMap.size() <= 8,
                                    ImGuiCond_FirstUseEver); // closed by default if more than 8
         x.second->buildUI();
@@ -677,21 +740,16 @@ void buildUserGuiAndInvokeCallback() {
 
   if (state::userCallback) {
 
+    bool beganUserGUI = false;
     if (options::buildGui && options::openImGuiWindowForUserCallback) {
-      ImGui::PushID("user_callback");
-      ImGui::SetNextWindowPos(ImVec2(view::windowWidth - (rightWindowsWidth + imguiStackMargin), imguiStackMargin));
-      ImGui::SetNextWindowSize(ImVec2(rightWindowsWidth, 0.));
-
-      ImGui::Begin("Command UI", nullptr);
+      userGuiBegin();
+      beganUserGUI = true;
     }
 
     state::userCallback();
 
-    if (options::buildGui && options::openImGuiWindowForUserCallback) {
-      rightWindowsWidth = ImGui::GetWindowWidth();
-      lastWindowHeightUser = imguiStackMargin + ImGui::GetWindowHeight();
-      ImGui::End();
-      ImGui::PopID();
+    if (beganUserGUI) {
+      userGuiEnd();
     } else {
       lastWindowHeightUser = imguiStackMargin;
     }
@@ -707,8 +765,8 @@ void draw(bool withUI, bool withContextCallback) {
   // Update buffer and context
   render::engine->makeContextCurrent();
   render::engine->bindDisplay();
-  render::engine->setBackgroundColor({view::bgColor[0], view::bgColor[1], view::bgColor[2]});
-  render::engine->setBackgroundAlpha(view::bgColor[3]);
+  render::engine->setBackgroundColor({0., 0., 0.});
+  render::engine->setBackgroundAlpha(0);
   render::engine->clearDisplay();
 
   if (withUI) {
@@ -725,19 +783,24 @@ void draw(bool withUI, bool withContextCallback) {
       buildUserGuiAndInvokeCallback();
 
       if (options::buildGui) {
-        buildPolyscopeGui();
-        buildStructureGui();
-        buildPickGui();
+        if (options::buildDefaultGuiPanels) {
+          buildPolyscopeGui();
+          buildStructureGui();
+          buildPickGui();
+        }
 
-        for (Widget* w : state::widgets) {
-          w->buildGUI();
+        for (WeakHandle<Widget> wHandle : state::widgets) {
+          if (wHandle.isValid()) {
+            Widget& w = wHandle.get();
+            w.buildGUI();
+          }
         }
       }
     }
   }
 
   // Execute the context callback, if there is one.
-  // This callback is Polyscope implementation detail, which is distinct from the userCallback (which gets called below)
+  // This callback is Polyscope implementation detail, which is distinct from the userCallback (which gets called above)
   if (withContextCallback && contextStack.back().callback) {
     (contextStack.back().callback)();
   }
@@ -755,8 +818,11 @@ void draw(bool withUI, bool withContextCallback) {
   if (withUI) {
     // render widgets
     render::engine->bindDisplay();
-    for (Widget* w : state::widgets) {
-      w->draw();
+    for (WeakHandle<Widget> wHandle : state::widgets) {
+      if (wHandle.isValid()) {
+        Widget& w = wHandle.get();
+        w.draw();
+      }
     }
 
     render::engine->bindDisplay();
@@ -778,6 +844,9 @@ void mainLoopIteration() {
   view::updateFlight();
   showDelayedWarnings();
 
+  // Housekeeping
+  purgeWidgets();
+
   // Rendering
   draw();
   render::engine->swapDisplayBuffers();
@@ -788,12 +857,13 @@ void show(size_t forFrames) {
   if (!state::initialized) {
     exception("must initialize Polyscope with polyscope::init() before calling polyscope::show().");
   }
+  unshowRequested = false;
 
   // the popContext() doesn't quit until _after_ the last frame, so we need to decrement by 1 to get the count right
   if (forFrames > 0) forFrames--;
 
   auto checkFrames = [&]() {
-    if (forFrames == 0) {
+    if (forFrames == 0 || unshowRequested) {
       popContext();
     } else {
       forFrames--;
@@ -812,9 +882,13 @@ void show(size_t forFrames) {
 
   // if this was the outermost show(), hide the window afterward
   if (contextStack.size() == 1) {
-    render::engine->hideWindow();
+    if (options::hideWindowAfterShow) {
+      render::engine->hideWindow();
+    }
   }
 }
+
+void unshow() { unshowRequested = true; }
 
 void shutdown() {
 
@@ -827,6 +901,8 @@ void shutdown() {
 }
 
 bool registerGroup(std::string name) {
+  checkInitialized();
+
   // check if group already exists
   bool inUse = state::groups.find(name) != state::groups.end();
   if (inUse) {
@@ -834,10 +910,8 @@ bool registerGroup(std::string name) {
     return false;
   }
 
-  checkInitialized();
-  Group* g = new Group(name);
   // add to the group map
-  state::groups[g->name] = g;
+  state::groups[name] = std::unique_ptr<Group>(new Group(name));
 
   return true;
 }
@@ -858,7 +932,7 @@ bool setParentGroupOfGroup(std::string child, std::string parent) {
   }
 
   // set the parent
-  state::groups[parent]->addChildGroup(state::groups[child]);
+  state::groups[parent]->addChildGroup(*state::groups[child]);
   return true;
 }
 
@@ -871,11 +945,7 @@ bool setParentGroupOfStructure(std::string typeName, std::string child, std::str
     return false;
   }
 
-  // Make sure a map for the type exists
-  if (state::structures.find(typeName) == state::structures.end()) {
-    state::structures[typeName] = std::map<std::string, Structure*>();
-  }
-  std::map<std::string, Structure*>& sMap = state::structures[typeName];
+  std::map<std::string, std::unique_ptr<Structure>>& sMap = getStructureMapCreateIfNeeded(typeName);
 
   // check if child exists
   bool childExists = sMap.find(child) != sMap.end();
@@ -886,7 +956,7 @@ bool setParentGroupOfStructure(std::string typeName, std::string child, std::str
   }
 
   // set the parent
-  state::groups[parent]->addChildStructure(sMap[child]);
+  state::groups[parent]->addChildStructure(*sMap[child]);
   return true;
 }
 
@@ -896,12 +966,8 @@ bool setParentGroupOfStructure(Structure* child, std::string parent) {
 
 bool registerStructure(Structure* s, bool replaceIfPresent) {
 
-  // Make sure a map for the type exists
   std::string typeName = s->typeName();
-  if (state::structures.find(typeName) == state::structures.end()) {
-    state::structures[typeName] = std::map<std::string, Structure*>();
-  }
-  std::map<std::string, Structure*>& sMap = state::structures[typeName];
+  std::map<std::string, std::unique_ptr<Structure>>& sMap = getStructureMapCreateIfNeeded(typeName);
 
   // Check if the structure name is in use
   bool inUse = sMap.find(s->name) != sMap.end();
@@ -924,7 +990,7 @@ bool registerStructure(Structure* s, bool replaceIfPresent) {
   }
 
   // Add the new structure
-  sMap[s->name] = s;
+  sMap[s->name] = std::unique_ptr<Structure>(s); // take ownership with a unique pointer
   updateStructureExtents();
   requestRedraw();
 
@@ -940,7 +1006,7 @@ Structure* getStructure(std::string type, std::string name) {
     exception("No structures of type " + type + " registered");
     return nullptr;
   }
-  std::map<std::string, Structure*>& sMap = state::structures[type];
+  std::map<std::string, std::unique_ptr<Structure>>& sMap = state::structures[type];
 
   // Special automatic case, return any
   if (name == "") {
@@ -949,7 +1015,7 @@ Structure* getStructure(std::string type, std::string name) {
                 "registered");
       return nullptr;
     }
-    return sMap.begin()->second;
+    return sMap.begin()->second.get();
   }
 
   // General case
@@ -957,7 +1023,7 @@ Structure* getStructure(std::string type, std::string name) {
     exception("No structure of type " + type + " with name " + name + " registered");
     return nullptr;
   }
-  return sMap[name];
+  return sMap[name].get();
 }
 
 bool hasStructure(std::string type, std::string name) {
@@ -965,7 +1031,7 @@ bool hasStructure(std::string type, std::string name) {
   if (state::structures.find(type) == state::structures.end()) {
     return false;
   }
-  std::map<std::string, Structure*>& sMap = state::structures[type];
+  std::map<std::string, std::unique_ptr<Structure>>& sMap = state::structures[type];
 
   // Special automatic case, return any
   if (name == "") {
@@ -1000,18 +1066,11 @@ void removeGroup(std::string name, bool errorIfAbsent) {
   }
 
   // Group exists, remove it
-  Group* g = state::groups[name];
-  state::groups.erase(g->name);
-  delete g;
+  state::groups.erase(name);
   return;
 }
 
-void removeAllGroups() {
-  for (auto& g : state::groups) {
-    delete g.second;
-  }
-  state::groups.clear();
-}
+void removeAllGroups() { state::groups.clear(); }
 
 void removeStructure(std::string type, std::string name, bool errorIfAbsent) {
 
@@ -1022,7 +1081,7 @@ void removeStructure(std::string type, std::string name, bool errorIfAbsent) {
     }
     return;
   }
-  std::map<std::string, Structure*>& sMap = state::structures[type];
+  std::map<std::string, std::unique_ptr<Structure>>& sMap = state::structures[type];
 
   // Check if structure exists
   if (sMap.find(name) == sMap.end()) {
@@ -1033,17 +1092,16 @@ void removeStructure(std::string type, std::string name, bool errorIfAbsent) {
   }
 
   // Structure exists, remove it
-  Structure* s = sMap[name];
+  Structure* s = sMap[name].get();
   if (static_cast<void*>(s) == static_cast<void*>(internal::globalFloatingQuantityStructure)) {
     internal::globalFloatingQuantityStructure = nullptr;
   }
   // remove it from all existing groups
   for (auto& g : state::groups) {
-    g.second->removeChildStructure(s);
+    g.second->removeChildStructure(*s);
   }
   pick::resetSelectionIfStructure(s);
   sMap.erase(s->name);
-  delete s;
   updateStructureExtents();
   return;
 }
@@ -1056,13 +1114,13 @@ void removeStructure(std::string name, bool errorIfAbsent) {
 
   // Check if we can find exactly one structure matching the name
   Structure* targetStruct = nullptr;
-  for (auto typeMap : state::structures) {
-    for (auto entry : typeMap.second) {
+  for (auto& typeMap : state::structures) {
+    for (auto& entry : typeMap.second) {
 
       // Found a matching structure
       if (entry.first == name) {
         if (targetStruct == nullptr) {
-          targetStruct = entry.second;
+          targetStruct = entry.second.get();
         } else {
           exception(
               "Cannot use automatic structure remove with empty name unless there is exactly one structure of that "
@@ -1088,16 +1146,16 @@ void removeStructure(std::string name, bool errorIfAbsent) {
 
 void removeAllStructures() {
 
-  for (auto typeMap : state::structures) {
+  for (auto& typeMap : state::structures) {
 
     // dodge iterator invalidation
     std::vector<std::string> names;
-    for (auto entry : typeMap.second) {
+    for (auto& entry : typeMap.second) {
       names.push_back(entry.first);
     }
 
     // remove all
-    for (auto name : names) {
+    for (std::string name : names) {
       removeStructure(typeMap.first, name);
     }
   }
@@ -1112,8 +1170,8 @@ void refresh() {
   render::engine->groundPlane.prepare();
 
   // reset all of the structures
-  for (auto cat : state::structures) {
-    for (auto x : cat.second) {
+  for (auto& cat : state::structures) {
+    for (auto& x : cat.second) {
       x.second->refresh();
     }
   }
@@ -1203,8 +1261,8 @@ void updateStructureExtents() {
   glm::vec3 minBbox = glm::vec3{1, 1, 1} * std::numeric_limits<float>::infinity();
   glm::vec3 maxBbox = -glm::vec3{1, 1, 1} * std::numeric_limits<float>::infinity();
 
-  for (auto cat : state::structures) {
-    for (auto x : cat.second) {
+  for (auto& cat : state::structures) {
+    for (auto& x : cat.second) {
       if (!x.second->hasExtents()) {
         continue;
       }

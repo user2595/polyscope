@@ -38,7 +38,7 @@ R"(
       void main()
       {
           tCoord = (a_position.xy+vec2(1.0,1.0))/2.0;
-          ${ TCOORD_ADJUST }$
+          ${ VERT_ASSIGNMENTS }$
 
           vec4 position = vec4(a_position,1.0);
           ${ POSITION_ADJUST }$
@@ -142,7 +142,6 @@ const ShaderStageSpecification PLAIN_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER = {
     // textures 
     { 
       {"t_depth", 2},
-      {"t_normal", 2},
     },
     
     // source 
@@ -156,7 +155,6 @@ R"(
 
   in vec2 tCoord;
   uniform sampler2D t_depth;
-  uniform sampler2D t_normal;
   layout(location = 0) out vec4 outputF;
     
   float LARGE_FLOAT();
@@ -169,7 +167,6 @@ R"(
 
     // Fetch values from texture
     float depth = texture(t_depth, tCoord).r;
-    vec3 normal = normalize(texture(t_normal, tCoord).rgb);
 
     if(depth > LARGE_FLOAT()) {
       discard;
@@ -177,11 +174,93 @@ R"(
 
     // Set the depth of the fragment from the stored texture data
     // TODO: this a wasteful way to convert ray depth to gl_FragDepth, I am sure it can be done with much less arithmetic... figure it out 
-    // Build a ray corresponding to this fragment
+    // WARNING this code is duplicated in other shaders
     vec2 depthRange = vec2(gl_DepthRange.near, gl_DepthRange.far);
     vec3 viewRay = fragmentViewPosition(u_viewport, depthRange, u_invProjMatrix, gl_FragCoord);
-    // (source is implicit at origin)
-    vec3 viewPos = normalize(viewRay) * depth;
+    viewRay = normalize(viewRay);
+    vec3 viewPos =  viewRay * (-1./viewRay.z*depth);
+    float fragdepth = fragDepthFromView(u_projMatrix, depthRange, viewPos);
+    gl_FragDepth = fragdepth;
+
+    
+    // Shading
+    vec3 shadeNormal = vec3(0.f, 0.f, 0.f);
+    ${ GENERATE_SHADE_VALUE }$
+    ${ GENERATE_SHADE_COLOR }$
+
+    // Lighting
+    ${ GENERATE_LIT_COLOR }$
+
+     // Set alpha
+    float alphaOut = u_transparency;
+    ${ GENERATE_ALPHA }$
+    
+    ${ PERTURB_LIT_COLOR }$
+
+    // Write output
+    litColor *= alphaOut; // premultiplied alpha
+    outputF = vec4(litColor, alphaOut);
+
+  }
+)"
+};
+
+const ShaderStageSpecification PLAIN_RAW_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER = {
+    
+    // stage
+    ShaderStageType::Fragment,
+    
+    // uniforms
+    { 
+        {"u_projMatrix", RenderDataType::Matrix44Float},
+        {"u_invProjMatrix", RenderDataType::Matrix44Float},
+        {"u_viewport", RenderDataType::Vector4Float},
+        {"u_transparency", RenderDataType::Float},
+    }, 
+
+    // attributes
+    { },
+    
+    // textures 
+    { 
+      {"t_depth", 2},
+    },
+    
+    // source 
+R"(
+
+  ${ GLSL_VERSION }$
+  uniform mat4 u_projMatrix; 
+  uniform mat4 u_invProjMatrix;
+  uniform vec4 u_viewport;
+  uniform float u_transparency;
+
+  in vec2 tCoord;
+  uniform sampler2D t_depth;
+  layout(location = 0) out vec4 outputF;
+    
+  float LARGE_FLOAT();
+  vec3 fragmentViewPosition(vec4 viewport, vec2 depthRange, mat4 invProjMat, vec4 fragCoord);
+  float fragDepthFromView(mat4 projMat, vec2 depthRange, vec3 viewPoint);
+
+  ${ FRAG_DECLARATIONS }$
+
+  void main() {
+
+    // Fetch values from texture
+    float depth = texture(t_depth, tCoord).r;
+
+    if(depth > LARGE_FLOAT()) {
+      discard;
+    }
+
+    // Set the depth of the fragment from the stored texture data
+    // TODO: this a wasteful way to convert ray depth to gl_FragDepth, I am sure it can be done with much less arithmetic... figure it out 
+    // WARNING this code is duplicated in other shaders
+    vec2 depthRange = vec2(gl_DepthRange.near, gl_DepthRange.far);
+    vec3 viewRay = fragmentViewPosition(u_viewport, depthRange, u_invProjMatrix, gl_FragCoord);
+    viewRay = normalize(viewRay);
+    vec3 viewPos =  viewRay * (-1./viewRay.z*depth);
     float fragdepth = fragDepthFromView(u_projMatrix, depthRange, viewPos);
     gl_FragDepth = fragdepth;
 
@@ -191,12 +270,15 @@ R"(
     ${ GENERATE_SHADE_COLOR }$
 
     // Lighting
-    vec3 shadeNormal = normal;
+    vec3 litColor = albedoColor; // this is 'raw', the actual transform is the identity here 
+    // still include this tag to allow for other transforms
     ${ GENERATE_LIT_COLOR }$
 
      // Set alpha
     float alphaOut = u_transparency;
     ${ GENERATE_ALPHA }$
+           
+    ${ PERTURB_LIT_COLOR }$
 
     // Write output
     outputF = vec4(litColor, alphaOut);
@@ -335,7 +417,6 @@ R"(
       void main()
       {
         vec4 val = texture(t_image, tCoord);
-        val.rgb = val.rgb * val.a; // premultiply
         outputF = val;
       }
 )"
@@ -504,9 +585,9 @@ R"(
 const ShaderReplacementRule TEXTURE_ORIGIN_UPPERLEFT (
     /* rule name */ "TEXTURE_ORIGIN_UPPERLEFT",
     { /* replacement sources */
-      {"TCOORD_ADJUST", R"(
+      {"VERT_ASSIGNMENTS", R"(
         tCoord = vec2(tCoord.x, 1. - tCoord.y);
-      )"}
+      )"},
     },
     /* uniforms */ {},
     /* attributes */ {},
@@ -516,7 +597,7 @@ const ShaderReplacementRule TEXTURE_ORIGIN_UPPERLEFT (
 const ShaderReplacementRule TEXTURE_ORIGIN_LOWERLEFT (
     // nothing needs to be done, this is already the default
     
-    /* rule name */ "TEXTURE_ORIGIN_UPPERLEFT",
+    /* rule name */ "TEXTURE_ORIGIN_LOWERLEFT",
     /* replacement sources */ {}, 
     /* uniforms */ {},
     /* attributes */ {},
@@ -536,6 +617,19 @@ const ShaderReplacementRule TEXTURE_SET_TRANSPARENCY(
     /* uniforms */ {
         {"u_transparency", RenderDataType::Float},
     },
+    /* attributes */ {},
+    /* textures */ {}
+);
+
+// remember to use this rule _after_ TEXTURE_SET_TRANSPARENCY
+const ShaderReplacementRule TEXTURE_PREMULTIPLY_OUT(
+    /* rule name */ "TEXTURE_PREMULTIPLY_OUT",
+    { /* replacement sources */
+      {"TEXTURE_OUT_ADJUST", R"(
+        textureOut = vec4(textureOut.a * textureOut.rgb, textureOut.a);
+      )"}
+    },
+    /* uniforms */ {},
     /* attributes */ {},
     /* textures */ {}
 );
@@ -560,8 +654,31 @@ const ShaderReplacementRule TEXTURE_SHADE_COLOR(
     }
 );
 
-// input: vec2 tcoord, 1d --> 3d texture t_scalar
+// input: vec2 tcoord, 2d --> 3d texture t_color + alpha 
 // output: vec3 albedoColor
+const ShaderReplacementRule TEXTURE_SHADE_COLORALPHA(
+    /* rule name */ "TEXTURE_SHADE_COLORALPHA",
+    { /* replacement sources */
+      {"FRAG_DECLARATIONS", R"(
+          uniform sampler2D t_color;
+        )" },
+      {"GENERATE_SHADE_COLOR", R"(
+        vec4 sampledTextureColorAlpha = texture(t_color, tCoord).rgba;
+        vec3 albedoColor = sampledTextureColorAlpha.rgb;
+        )"},
+      {"GENERATE_ALPHA", R"(
+        alphaOut *= sampledTextureColorAlpha.a;
+        )"}
+    },
+    /* uniforms */ {},
+    /* attributes */ {},
+    /* textures */ {
+      {"t_color", 2},
+    }
+);
+
+// input: vec2 tcoord, scalar-valued 2D texture t_scalar
+// output: float shadeValue
 const ShaderReplacementRule TEXTURE_PROPAGATE_VALUE(
     /* rule name */ "TEXTURE_PROPAGATE_VALUE",
     { /* replacement sources */
@@ -576,6 +693,25 @@ const ShaderReplacementRule TEXTURE_PROPAGATE_VALUE(
     /* attributes */ {},
     /* textures */ {
       {"t_scalar", 2},
+    }
+);
+
+// input: vec2 tcoord, color-valued 2D texture t_scalar
+// output: float shadeValue
+const ShaderReplacementRule TEXTURE_PROPAGATE_COLOR(
+    /* rule name */ "TEXTURE_PROPAGATE_COLOR",
+    { /* replacement sources */
+      {"FRAG_DECLARATIONS", R"(
+          uniform sampler2D t_color;
+        )" },
+      {"GENERATE_SHADE_VALUE", R"(
+        vec3 shadeColor = texture(t_color, tCoord).rgb;
+        )"}
+    },
+    /* uniforms */ {},
+    /* attributes */ {},
+    /* textures */ {
+      {"t_color", 2},
     }
 );
 
@@ -600,6 +736,36 @@ const ShaderReplacementRule TEXTURE_BILLBOARD_FROM_UNIFORMS(
       {"u_billboardCenter", RenderDataType::Vector3Float},
       {"u_billboardUp", RenderDataType::Vector3Float},
       {"u_billboardRight", RenderDataType::Vector3Float}
+    },
+    /* attributes */ {},
+    /* textures */ {}
+);
+
+const ShaderReplacementRule SHADE_NORMAL_FROM_TEXTURE (
+    /* rule name */ "NORMAL_FROM_TEXTURE",
+    { /* replacement sources */
+      {"FRAG_DECLARATIONS", R"(
+          uniform sampler2D t_normal;
+        )" },
+      {"GENERATE_LIT_COLOR", R"(
+        shadeNormal = normalize(texture(t_normal, tCoord).rgb);
+      )"}
+    },
+    /* uniforms */ {},
+    /* attributes */ {},
+    /* textures */ {
+      {"t_normal", 2},
+    }
+);
+
+const ShaderReplacementRule SHADE_NORMAL_FROM_VIEWPOS_VAR (
+    /* rule name */ "SHADER_NORMAL_FROM_VIEWPOS_VAR",
+    { /* replacement sources */
+      {"GENERATE_SHADE_VALUE", R"(
+        shadeNormal = normalize(cross(dFdx(viewPos),dFdy(viewPos)));
+        )"}
+    },
+    /* uniforms */ {
     },
     /* attributes */ {},
     /* textures */ {}

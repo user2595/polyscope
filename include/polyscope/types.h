@@ -6,7 +6,7 @@
 
 namespace polyscope {
 
-enum class NavigateStyle { Turntable = 0, Free, Planar, Arcball };
+enum class NavigateStyle { Turntable = 0, Free, Planar, Arcball, None, FirstPerson };
 enum class UpDir { XUp = 0, YUp, ZUp, NegXUp, NegYUp, NegZUp };
 enum class FrontDir { XFront = 0, YFront, ZFront, NegXFront, NegYFront, NegZFront };
 enum class BackgroundView { None = 0 };
@@ -26,6 +26,23 @@ enum class ImageOrigin { LowerLeft, UpperLeft };
 
 enum class ParamCoordsType { UNIT = 0, WORLD };                         // UNIT -> [0,1], WORLD -> length-valued
 enum class ParamVizStyle { CHECKER = 0, GRID, LOCAL_CHECK, LOCAL_RAD }; // TODO add "UV" with test UV map
+
+enum class ManagedBufferType {
+  Float,
+  Double,
+  Vec2,
+  Vec3,
+  Vec4,
+  Arr2Vec3,
+  Arr3Vec3,
+  Arr4Vec3,
+  UInt32,
+  Int32,
+  UVec2,
+  UVec3,
+  UVec4
+};
+
 
 // What is the meaningful range of these values?
 // Used to set meaningful colormaps

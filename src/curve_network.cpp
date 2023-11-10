@@ -20,10 +20,10 @@ const std::string CurveNetwork::structureTypeName = "Curve Network";
 CurveNetwork::CurveNetwork(std::string name, std::vector<glm::vec3> nodes_, std::vector<std::array<size_t, 2>> edges_)
     : // clang-format off
       QuantityStructure<CurveNetwork>(name, typeName()), 
-      nodePositions(uniquePrefix() + "nodePositions", nodePositionsData),
-      edgeTailInds(uniquePrefix() + "edgeTailInds", edgeTailIndsData),
-      edgeTipInds(uniquePrefix() + "edgeTipInds", edgeTipIndsData),
-      edgeCenters(uniquePrefix() + "edgeCenters", edgeCentersData, std::bind(&CurveNetwork::computeEdgeCenters, this)),         
+      nodePositions(this, uniquePrefix() + "nodePositions", nodePositionsData),
+      edgeTailInds(this, uniquePrefix() + "edgeTailInds", edgeTailIndsData),
+      edgeTipInds(this, uniquePrefix() + "edgeTipInds", edgeTipIndsData),
+      edgeCenters(this, uniquePrefix() + "edgeCenters", edgeCentersData, std::bind(&CurveNetwork::computeEdgeCenters, this)),         
       nodePositionsData(std::move(nodes_)), 
       color(uniquePrefix() + "#color", getNextUniqueColor()), 
       radius(uniquePrefix() + "#radius", relativeValue(0.005)),
@@ -119,6 +119,9 @@ void CurveNetwork::draw() {
     edgeProgram->setUniform("u_baseColor", getColor());
     nodeProgram->setUniform("u_baseColor", getColor());
 
+    render::engine->setMaterialUniforms(*edgeProgram, getMaterial());
+    render::engine->setMaterialUniforms(*nodeProgram, getMaterial());
+
     // Draw the actual curve network
     edgeProgram->draw();
     nodeProgram->draw();
@@ -199,15 +202,27 @@ void CurveNetwork::prepare() {
 
   // It no quantity is coloring the network, draw with a default color
 
-  {
-    nodeProgram = render::engine->requestShader("RAYCAST_SPHERE", addCurveNetworkNodeRules({"SHADE_BASECOLOR"}));
-    render::engine->setMaterial(*nodeProgram, getMaterial());
-  }
+  // clang-format off
+  nodeProgram = render::engine->requestShader("RAYCAST_SPHERE",  
+      render::engine->addMaterialRules(getMaterial(),
+        addCurveNetworkNodeRules(
+          {"SHADE_BASECOLOR"}
+        )
+      )
+    );
 
-  {
-    edgeProgram = render::engine->requestShader("RAYCAST_CYLINDER", addCurveNetworkEdgeRules({"SHADE_BASECOLOR"}));
-    render::engine->setMaterial(*edgeProgram, getMaterial());
-  }
+
+  edgeProgram = render::engine->requestShader("RAYCAST_CYLINDER", 
+      render::engine->addMaterialRules(getMaterial(),
+        addCurveNetworkEdgeRules(
+          {"SHADE_BASECOLOR"}
+        )
+      )
+    );
+  // clang-format on
+
+  render::engine->setMaterial(*nodeProgram, getMaterial());
+  render::engine->setMaterial(*edgeProgram, getMaterial());
 
   // Fill out the geometry data for the programs
   fillNodeGeometryBuffers(*nodeProgram);
@@ -497,6 +512,7 @@ void CurveNetworkQuantity::buildEdgeInfoGUI(size_t edgeInd) {}
 
 CurveNetworkNodeColorQuantity* CurveNetwork::addNodeColorQuantityImpl(std::string name,
                                                                       const std::vector<glm::vec3>& colors) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkNodeColorQuantity* q = new CurveNetworkNodeColorQuantity(name, colors, *this);
   addQuantity(q);
   return q;
@@ -504,6 +520,7 @@ CurveNetworkNodeColorQuantity* CurveNetwork::addNodeColorQuantityImpl(std::strin
 
 CurveNetworkEdgeColorQuantity* CurveNetwork::addEdgeColorQuantityImpl(std::string name,
                                                                       const std::vector<glm::vec3>& colors) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkEdgeColorQuantity* q = new CurveNetworkEdgeColorQuantity(name, colors, *this);
   addQuantity(q);
   return q;
@@ -512,6 +529,7 @@ CurveNetworkEdgeColorQuantity* CurveNetwork::addEdgeColorQuantityImpl(std::strin
 
 CurveNetworkNodeScalarQuantity*
 CurveNetwork::addNodeScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkNodeScalarQuantity* q = new CurveNetworkNodeScalarQuantity(name, data, *this, type);
   addQuantity(q);
   return q;
@@ -519,6 +537,7 @@ CurveNetwork::addNodeScalarQuantityImpl(std::string name, const std::vector<doub
 
 CurveNetworkEdgeScalarQuantity*
 CurveNetwork::addEdgeScalarQuantityImpl(std::string name, const std::vector<double>& data, DataType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkEdgeScalarQuantity* q = new CurveNetworkEdgeScalarQuantity(name, data, *this, type);
   addQuantity(q);
   return q;
@@ -527,6 +546,7 @@ CurveNetwork::addEdgeScalarQuantityImpl(std::string name, const std::vector<doub
 CurveNetworkNodeVectorQuantity* CurveNetwork::addNodeVectorQuantityImpl(std::string name,
                                                                         const std::vector<glm::vec3>& vectors,
                                                                         VectorType vectorType) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkNodeVectorQuantity* q = new CurveNetworkNodeVectorQuantity(name, vectors, *this, vectorType);
   addQuantity(q);
   return q;
@@ -535,6 +555,7 @@ CurveNetworkNodeVectorQuantity* CurveNetwork::addNodeVectorQuantityImpl(std::str
 CurveNetworkEdgeVectorQuantity* CurveNetwork::addEdgeVectorQuantityImpl(std::string name,
                                                                         const std::vector<glm::vec3>& vectors,
                                                                         VectorType vectorType) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   CurveNetworkEdgeVectorQuantity* q = new CurveNetworkEdgeVectorQuantity(name, vectors, *this, vectorType);
   addQuantity(q);
   return q;

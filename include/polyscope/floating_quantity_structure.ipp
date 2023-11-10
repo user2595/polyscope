@@ -25,7 +25,7 @@ template <class T>
 ColorImageQuantity* addColorAlphaImageQuantity(std::string name, size_t dimX, size_t dimY, const T& values_rgba,
                                                ImageOrigin imageOrigin) {
   FloatingQuantityStructure* q = getGlobalFloatingQuantityStructure();
-  return q->addColorImageQuantity(name, dimX, dimY, values_rgba, imageOrigin);
+  return q->addColorAlphaImageQuantity(name, dimX, dimY, values_rgba, imageOrigin);
 }
 
 
@@ -52,6 +52,22 @@ ScalarRenderImageQuantity* addScalarRenderImageQuantity(std::string name, size_t
                                                         ImageOrigin imageOrigin, DataType type) {
   FloatingQuantityStructure* q = getGlobalFloatingQuantityStructure();
   return q->addScalarRenderImageQuantity(name, dimX, dimY, depthData, normalData, scalarData, imageOrigin, type);
+}
+
+template <class T1, class T2>
+RawColorRenderImageQuantity* addRawColorRenderImageQuantity(std::string name, size_t dimX, size_t dimY,
+                                                            const T1& depthData, const T2& colorData,
+                                                            ImageOrigin imageOrigin) {
+  FloatingQuantityStructure* q = getGlobalFloatingQuantityStructure();
+  return q->addRawColorRenderImageQuantity(name, dimX, dimY, depthData, colorData, imageOrigin);
+}
+
+template <class T1, class T2>
+RawColorAlphaRenderImageQuantity* addRawColorAlphaRenderImageQuantity(std::string name, size_t dimX, size_t dimY,
+                                                                      const T1& depthData, const T2& colorData,
+                                                                      ImageOrigin imageOrigin) {
+  FloatingQuantityStructure* q = getGlobalFloatingQuantityStructure();
+  return q->addRawColorAlphaRenderImageQuantity(name, dimX, dimY, depthData, colorData, imageOrigin);
 }
 
 

@@ -7,12 +7,15 @@
 #include "polyscope/curve_network.h"
 #include "polyscope/file_helpers.h"
 #include "polyscope/floating_quantity_structure.h"
-#include "polyscope/implicit_surface.h"
+#include "polyscope/implicit_helpers.h"
 #include "polyscope/pick.h"
 #include "polyscope/point_cloud.h"
+#include "polyscope/render/managed_buffer.h"
+#include "polyscope/simple_triangle_mesh.h"
 #include "polyscope/surface_mesh.h"
 #include "polyscope/types.h"
 #include "polyscope/view.h"
+#include "polyscope/volume_grid.h"
 #include "polyscope/volume_mesh.h"
 
 #include <iostream>
@@ -100,6 +103,8 @@ void processFileOBJ(std::string filename) {
     vertexPositionsGLM.push_back(glm::vec3{p[0], p[1], p[2]});
   }
   auto psMesh = polyscope::registerSurfaceMesh(niceName, vertexPositionsGLM, faceIndices);
+
+  auto psSimpleMesh = polyscope::registerSimpleTriangleMesh(niceName, vertexPositionsGLM, faceIndices);
 
   // Useful data
   size_t nVertices = psMesh->nVertices();
@@ -294,7 +299,6 @@ void processFileOBJ(std::string filename) {
     for (size_t i = 0; i < nVertices; i++) {
       std::tie(vertexBasisX[i], vertexBasisY[i]) = constructBasis(vNormals[i]);
     }
-    psMesh->setVertexTangentBasisX(vertexBasisX);
 
     // face tangent bases
     std::vector<glm::vec3> faceBasisX(nFaces);
@@ -302,7 +306,6 @@ void processFileOBJ(std::string filename) {
     for (size_t i = 0; i < nFaces; i++) {
       std::tie(faceBasisX[i], faceBasisY[i]) = constructBasis(fNormals[i]);
     }
-    psMesh->setFaceTangentBasisX(faceBasisX);
 
     // At vertices
     std::vector<glm::vec2> vertexTangentVec(nVertices, glm::vec3{0., 0., 0.});
@@ -315,8 +318,8 @@ void processFileOBJ(std::string filename) {
       glm::vec2 vTangent{glm::dot(v, basisX), glm::dot(v, basisY)};
       vertexTangentVec[iV] = vTangent;
     }
-    psMesh->addVertexTangentVectorQuantity("tangent vertex vec", vertexTangentVec);
-    psMesh->addVertexTangentVectorQuantity("tangent vertex vec line", vertexTangentVec, 2);
+    psMesh->addVertexTangentVectorQuantity("tangent vertex vec", vertexTangentVec, vertexBasisX, vertexBasisY);
+    psMesh->addVertexTangentVectorQuantity("tangent vertex vec line", vertexTangentVec, vertexBasisX, vertexBasisY, 2);
 
     // At faces
     std::vector<glm::vec2> faceTangentVec(nFaces, glm::vec3{0., 0., 0.});
@@ -330,8 +333,8 @@ void processFileOBJ(std::string filename) {
       glm::vec2 vTangent{glm::dot(v, basisX), glm::dot(v, basisY)};
       faceTangentVec[iF] = vTangent;
     }
-    psMesh->addFaceTangentVectorQuantity("tangent face vec", faceTangentVec);
-    psMesh->addFaceTangentVectorQuantity("tangent face vec cross", faceTangentVec, 4);
+    psMesh->addFaceTangentVectorQuantity("tangent face vec", faceTangentVec, faceBasisX, faceBasisY);
+    psMesh->addFaceTangentVectorQuantity("tangent face vec cross", faceTangentVec, faceBasisX, faceBasisY, 4);
 
 
     // 1-form
@@ -435,11 +438,63 @@ void processFileOBJ(std::string filename) {
   }
 }
 
+void addVolumeGrid() {
+
+  // uint32_t dimX = 4;
+  // uint32_t dimY = 5;
+  // uint32_t dimZ = 6;
+  // glm::vec3 bound_low{-1., -2., -5.};
+  // glm::vec3 bound_high{3., -1., 1.};
+
+  // uint32_t dimX = 256;
+  // uint32_t dimY = 256;
+  // uint32_t dimZ = 256;
+  // uint32_t dimX = 128;
+  // uint32_t dimY = 128;
+  // uint32_t dimZ = 128;
+  // uint32_t dimX = 2;
+  // uint32_t dimY = 2;
+  // uint32_t dimZ = 2;
+  uint32_t dimX = 20;
+  uint32_t dimY = 20;
+  uint32_t dimZ = 20;
+  // glm::vec3 bound_low{0., 0., 0.};
+  // glm::vec3 bound_high{1., 1., 1.};
+  glm::vec3 bound_low{-3., -3., -3.};
+  glm::vec3 bound_high{3., 3., 3.};
+
+
+  polyscope::VolumeGrid* psGrid = polyscope::registerVolumeGrid("test grid", {dimX, dimY, dimZ}, bound_low, bound_high);
+  polyscope::registerPointCloud("corners", std::vector<glm::vec3>{bound_low, bound_high});
+
+  psGrid->setEdgeWidth(1.0);
+
+  // Scalar quantities
+  auto torusSDF = [](glm::vec3 p) {
+    float scale = 0.5;
+    p /= scale;
+    p += glm::vec3{1., 0., 1.};
+    glm::vec2 t{1., 0.3};
+    glm::vec2 pxz{p.x, p.z};
+    glm::vec2 q = glm::vec2(glm::length(pxz) - t.x, p.y);
+    return (glm::length(q) - t.y) * scale;
+  };
+
+  polyscope::VolumeGridNodeScalarQuantity* qNode =
+      psGrid->addNodeScalarQuantityFromCallable("torus sdf node", torusSDF);
+  qNode->setEnabled(true);
+
+  polyscope::VolumeGridCellScalarQuantity* qCell =
+      psGrid->addCellScalarQuantityFromCallable("torus sdf cell", torusSDF);
+  qCell->setEnabled(true);
+}
+
 
 void loadFloatingImageData(polyscope::CameraView* targetView = nullptr) {
 
   // load an image from disk as example data
   std::string imagePath = "test_image.png";
+  // std::string imagePath = "test_image_transparent.png";
 
   int width, height, nComp;
   unsigned char* data = stbi_load(imagePath.c_str(), &width, &height, &nComp, 4);
@@ -542,15 +597,18 @@ void addImplicitRendersFromCurrentView() {
 
   polyscope::ImplicitRenderOpts opts;
   // opts.mode = polyscope::ImplicitRenderMode::FixedStep;
-  opts.mode = polyscope::ImplicitRenderMode::SphereMarch;
+  polyscope::ImplicitRenderMode mode = polyscope::ImplicitRenderMode::SphereMarch;
+  // polyscope::ImplicitRenderMode mode = polyscope::ImplicitRenderMode::FixedStep;
   opts.subsampleFactor = 2;
 
-  polyscope::DepthRenderImageQuantity* img = polyscope::renderImplicitSurface("torus sdf", torusSDF, opts);
-  polyscope::DepthRenderImageQuantity* img2 = polyscope::renderImplicitSurface("box sdf", boxFrameSDF, opts);
+  polyscope::DepthRenderImageQuantity* img = polyscope::renderImplicitSurface("torus sdf", torusSDF, mode, opts);
+  polyscope::DepthRenderImageQuantity* img2 = polyscope::renderImplicitSurface("box sdf", boxFrameSDF, mode, opts);
   polyscope::ColorRenderImageQuantity* img2Color =
-      polyscope::renderImplicitSurfaceColor("box sdf color", boxFrameSDF, colorFunc, opts);
+      polyscope::renderImplicitSurfaceColor("box sdf color", boxFrameSDF, colorFunc, mode, opts);
+  polyscope::RawColorRenderImageQuantity* img2rawColor =
+      polyscope::renderImplicitSurfaceRawColor("box sdf raw color", boxFrameSDF, colorFunc, mode, opts);
   polyscope::ScalarRenderImageQuantity* imgScalar =
-      polyscope::renderImplicitSurfaceScalar("torus sdf scalar", torusSDF, scalarFunc, opts);
+      polyscope::renderImplicitSurfaceScalar("torus sdf scalar", torusSDF, scalarFunc, mode, opts);
 }
 
 void dropCameraView() {
@@ -731,12 +789,16 @@ void callback() {
   }
 
 
-  if (ImGui::Button("add implicits")) {
-    addImplicitRendersFromCurrentView();
-  }
-
   if (ImGui::Button("drop camera view here")) {
     dropCameraView();
+  }
+
+  if (ImGui::Button("load floating image data")) {
+    loadFloatingImageData();
+  }
+
+  if (ImGui::Button("add volume grid")) {
+    addVolumeGrid();
   }
 
   ImGui::PopItemWidth();
@@ -745,7 +807,7 @@ void callback() {
 int main(int argc, char** argv) {
   // Configure the argument parser
   args::ArgumentParser parser("A simple demo of Polyscope.\nBy "
-                              "Nick Sharp (nsharp@cs.cmu.edu)",
+                              "Nick Sharp (nmwsharp@gmail.com)",
                               "");
   args::PositionalList<std::string> files(parser, "files", "One or more files to visualize");
 
@@ -767,7 +829,8 @@ int main(int argc, char** argv) {
   // polyscope::view::windowWidth = 600;
   // polyscope::view::windowHeight = 800;
   // polyscope::options::maxFPS = -1;
-  // polyscope::options::verbosity = 100;
+  polyscope::options::verbosity = 100;
+  polyscope::options::enableRenderErrorChecks = true;
 
   // Initialize polyscope
   polyscope::init();
@@ -777,7 +840,7 @@ int main(int argc, char** argv) {
   }
 
   // Create a point cloud
-  for (int j = 0; j < 2; j++) {
+  for (int j = 0; j < 1; j++) {
     std::vector<glm::vec3> points;
     for (size_t i = 0; i < 3000; i++) {
       points.push_back(
@@ -787,7 +850,8 @@ int main(int argc, char** argv) {
     addDataToPointCloud("really great points" + std::to_string(j), points);
   }
 
-  loadFloatingImageData();
+  // loadFloatingImageData();
+  // addVolumeGrid();
 
   // Add a few gui elements
   polyscope::state::userCallback = callback;
@@ -799,6 +863,8 @@ int main(int argc, char** argv) {
   // while (true) {
   //   polyscope::frameTick();
   // }
+
+  std::cout << "!!!! shutdown time" << std::endl;
 
   return 0;
 }

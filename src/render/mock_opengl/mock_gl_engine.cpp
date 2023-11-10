@@ -14,6 +14,7 @@
 #include "polyscope/render/opengl/shaders/common.h"
 #include "polyscope/render/opengl/shaders/cylinder_shaders.h"
 #include "polyscope/render/opengl/shaders/gizmo_shaders.h"
+#include "polyscope/render/opengl/shaders/grid_shaders.h"
 #include "polyscope/render/opengl/shaders/ground_plane_shaders.h"
 #include "polyscope/render/opengl/shaders/histogram_shaders.h"
 #include "polyscope/render/opengl/shaders/lighting_shaders.h"
@@ -71,115 +72,61 @@ void GLAttributeBuffer::checkArray(int testArrayCount) {
   }
 }
 
-void GLAttributeBuffer::setData(const std::vector<glm::vec2>& data) {
-  checkType(RenderDataType::Vector2Float);
 
-  // sanity check that the data array has the expected layout for the memcopy below
-  static_assert(sizeof(glm::vec2) == 2 * sizeof(float), "glm::vec2 has unexpected size/layout on this platform");
-
+template <typename T>
+void GLAttributeBuffer::setData_helper(const std::vector<T>& data) {
   bind();
 
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-
-    dataSize = data.size();
+  // allocate if needed
+  if (!isSet() || data.size() > bufferSize) {
+    setFlag = true;
+    uint64_t newSize = data.size();
+    newSize = std::max(newSize, 2 * bufferSize); // if we're expanding, at-least double
+    bufferSize = newSize;
   }
+
+  // do the actual copy
+  dataSize = data.size();
+
+  checkGLError();
+}
+
+void GLAttributeBuffer::setData(const std::vector<glm::vec2>& data) {
+  checkType(RenderDataType::Vector2Float);
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<glm::vec3>& data) {
   checkType(RenderDataType::Vector3Float);
-
-  // sanity check that the data array has the expected layout for the memcopy below
-  static_assert(sizeof(glm::vec3) == 3 * sizeof(float), "glm::vec3 has unexpected size/layout on this platform");
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<std::array<glm::vec3, 2>>& data) {
   checkType(RenderDataType::Vector3Float);
   checkArray(2);
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = 2 * data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<std::array<glm::vec3, 3>>& data) {
   checkType(RenderDataType::Vector3Float);
   checkArray(3);
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = 3 * data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<std::array<glm::vec3, 4>>& data) {
   checkType(RenderDataType::Vector3Float);
   checkArray(4);
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = 4 * data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<glm::vec4>& data) {
   checkType(RenderDataType::Vector4Float);
-
-  // sanity check that the data array has the expected layout for the memcopy below
-  static_assert(sizeof(glm::vec4) == 4 * sizeof(float), "glm::vec4 has unexpected size/layout on this platform");
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<float>& data) {
   checkType(RenderDataType::Float);
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<double>& data) {
@@ -191,167 +138,101 @@ void GLAttributeBuffer::setData(const std::vector<double>& data) {
     floatData[i] = static_cast<float>(data[i]);
   }
 
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(floatData);
 }
 
 void GLAttributeBuffer::setData(const std::vector<int32_t>& data) {
   checkType(RenderDataType::Int);
-
-  // TODO I've seen strange bugs when using int's in shaders. Need to figure
-  // out it it's my shaders or something wrong with this function
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<uint32_t>& data) {
   checkType(RenderDataType::UInt);
-
-  // TODO I've seen strange bugs when using int's in shaders. Need to figure
-  // out it it's my shaders or something wrong with this function
-
-  bind();
-
-  if (isSet()) {
-
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<glm::uvec2>& data) {
   checkType(RenderDataType::Vector2UInt);
-
-
-  bind();
-
-  if (isSet()) {
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 void GLAttributeBuffer::setData(const std::vector<glm::uvec3>& data) {
   checkType(RenderDataType::Vector3UInt);
-
-  bind();
-
-  if (isSet()) {
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
 void GLAttributeBuffer::setData(const std::vector<glm::uvec4>& data) {
   checkType(RenderDataType::Vector4UInt);
-
-  bind();
-
-  if (isSet()) {
-    if (static_cast<int64_t>(data.size()) != dataSize) exception("updated data must have same size");
-  } else {
-    dataSize = data.size();
-  }
+  setData_helper(data);
 }
 
-// get single data values
+
+// === get single data values
+
+template <typename T>
+T GLAttributeBuffer::getData_helper(size_t ind) {
+  if (!isSet() || ind >= static_cast<size_t>(getDataSize() * getArrayCount())) exception("bad getData");
+  bind();
+  T readValue{};
+  return readValue;
+}
 
 float GLAttributeBuffer::getData_float(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Float) exception("bad getData type");
-  bind();
-  float readValue = 777.;
-  return readValue;
+  return getData_helper<float>(ind);
 }
+
 double GLAttributeBuffer::getData_double(size_t ind) { return getData_float(ind); }
+
 glm::vec2 GLAttributeBuffer::getData_vec2(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector2Float) exception("bad getData type");
-  bind();
-  glm::vec2 readValue{777., 777.};
-  return readValue;
+  return getData_helper<glm::vec2>(ind);
 }
 glm::vec3 GLAttributeBuffer::getData_vec3(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector3Float) exception("bad getData type");
-  bind();
-  glm::vec3 readValue{777., 777., 777.};
-  return readValue;
+  return getData_helper<glm::vec3>(ind);
 }
 glm::vec4 GLAttributeBuffer::getData_vec4(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector4Float) exception("bad getData type");
-  bind();
-  glm::vec4 readValue{777., 777., 777., 777.};
-  return readValue;
+  return getData_helper<glm::vec4>(ind);
 }
 int GLAttributeBuffer::getData_int(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Int) exception("bad getData type");
-  bind();
-  int readValue = 777;
-  return static_cast<int>(readValue);
+  return getData_helper<int>(ind);
 }
 uint32_t GLAttributeBuffer::getData_uint32(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::UInt) exception("bad getData type");
-  bind();
-  uint32_t readValue = 777;
-  return readValue;
+  return getData_helper<uint32_t>(ind);
 }
 glm::uvec2 GLAttributeBuffer::getData_uvec2(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector2Float) exception("bad getData type");
-  bind();
-  glm::uvec2 readValue{777, 777};
-  return readValue;
+  return getData_helper<glm::uvec2>(ind);
 }
 glm::uvec3 GLAttributeBuffer::getData_uvec3(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector3Float) exception("bad getData type");
-  bind();
-  glm::uvec3 readValue{777, 777, 777};
-  return readValue;
+  return getData_helper<glm::uvec3>(ind);
 }
 glm::uvec4 GLAttributeBuffer::getData_uvec4(size_t ind) {
-  if (!isSet() || ind >= static_cast<size_t>(getDataSize())) exception("bad getData");
   if (getType() != RenderDataType::Vector4Float) exception("bad getData type");
-  bind();
-  glm::uvec4 readValue{777, 777, 777, 777};
-  return readValue;
+  return getData_helper<glm::uvec4>(ind);
 }
 
-// get ranges of data
+// === get ranges of values
 
-std::vector<float> GLAttributeBuffer::getDataRange_float(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
-  if (getType() != RenderDataType::Float) exception("bad getData type");
+template <typename T>
+std::vector<T> GLAttributeBuffer::getDataRange_helper(size_t start, size_t count) {
+  if (!isSet() || start + count > static_cast<size_t>(getDataSize() * getArrayCount())) exception("bad getData");
   bind();
-  std::vector<float> readValues(count);
+  std::vector<T> readValues(count);
   return readValues;
 }
 
-std::vector<double> GLAttributeBuffer::getDataRange_double(size_t ind, size_t count) {
-  std::vector<float> floatValues = getDataRange_float(ind, count);
+std::vector<float> GLAttributeBuffer::getDataRange_float(size_t start, size_t count) {
+  if (getType() != RenderDataType::Float) exception("bad getData type");
+  return getDataRange_helper<float>(start, count);
+}
+
+std::vector<double> GLAttributeBuffer::getDataRange_double(size_t start, size_t count) {
+  std::vector<float> floatValues = getDataRange_float(start, count);
   std::vector<double> values(count);
   for (size_t i = 0; i < count; i++) {
     values[i] = static_cast<double>(floatValues[i]);
@@ -359,69 +240,40 @@ std::vector<double> GLAttributeBuffer::getDataRange_double(size_t ind, size_t co
   return values;
 }
 
-std::vector<glm::vec2> GLAttributeBuffer::getDataRange_vec2(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
+std::vector<glm::vec2> GLAttributeBuffer::getDataRange_vec2(size_t start, size_t count) {
   if (getType() != RenderDataType::Vector2Float) exception("bad getData type");
-  bind();
-  std::vector<glm::vec2> readValues(count);
-  return readValues;
+  return getDataRange_helper<glm::vec2>(start, count);
 }
-std::vector<glm::vec3> GLAttributeBuffer::getDataRange_vec3(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
+std::vector<glm::vec3> GLAttributeBuffer::getDataRange_vec3(size_t start, size_t count) {
   if (getType() != RenderDataType::Vector3Float) exception("bad getData type");
-  bind();
-  std::vector<glm::vec3> readValues(count);
-  return readValues;
+  return getDataRange_helper<glm::vec3>(start, count);
 }
-std::vector<glm::vec4> GLAttributeBuffer::getDataRange_vec4(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
+std::vector<glm::vec4> GLAttributeBuffer::getDataRange_vec4(size_t start, size_t count) {
   if (getType() != RenderDataType::Vector4Float) exception("bad getData type");
-  bind();
-  std::vector<glm::vec4> readValues(count);
-  return readValues;
+  return getDataRange_helper<glm::vec4>(start, count);
 }
-std::vector<int> GLAttributeBuffer::getDataRange_int(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
+std::vector<int> GLAttributeBuffer::getDataRange_int(size_t start, size_t count) {
   if (getType() != RenderDataType::Int) exception("bad getData type");
-  bind();
-  std::vector<int> readValues(count);
-
-  // probably does nothing
-  std::vector<int> intValues(count);
-  for (size_t i = 0; i < count; i++) {
-    intValues[i] = static_cast<int>(readValues[i]);
-  }
-
-  return intValues;
+  return getDataRange_helper<int>(start, count);
 }
-std::vector<uint32_t> GLAttributeBuffer::getDataRange_uint32(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
+std::vector<uint32_t> GLAttributeBuffer::getDataRange_uint32(size_t start, size_t count) {
   if (getType() != RenderDataType::UInt) exception("bad getData type");
-  bind();
-  std::vector<uint32_t> readValues(count);
-  return readValues;
+  return getDataRange_helper<uint32_t>(start, count);
 }
-std::vector<glm::uvec2> GLAttributeBuffer::getDataRange_uvec2(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
-  if (getType() != RenderDataType::Vector2Float) exception("bad getData type");
-  bind();
-  std::vector<glm::uvec2> readValues(count);
-  return readValues;
+std::vector<glm::uvec2> GLAttributeBuffer::getDataRange_uvec2(size_t start, size_t count) {
+  if (getType() != RenderDataType::Vector2UInt) exception("bad getData type");
+  return getDataRange_helper<glm::uvec2>(start, count);
 }
-std::vector<glm::uvec3> GLAttributeBuffer::getDataRange_uvec3(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
-  if (getType() != RenderDataType::Vector3Float) exception("bad getData type");
-  bind();
-  std::vector<glm::uvec3> readValues(count);
-  return readValues;
+std::vector<glm::uvec3> GLAttributeBuffer::getDataRange_uvec3(size_t start, size_t count) {
+  if (getType() != RenderDataType::Vector3UInt) exception("bad getData type");
+  return getDataRange_helper<glm::uvec3>(start, count);
 }
-std::vector<glm::uvec4> GLAttributeBuffer::getDataRange_uvec4(size_t ind, size_t count) {
-  if (!isSet() || ind + count > static_cast<size_t>(getDataSize())) exception("bad getData");
-  if (getType() != RenderDataType::Vector4Float) exception("bad getData type");
+std::vector<glm::uvec4> GLAttributeBuffer::getDataRange_uvec4(size_t start, size_t count) {
+  if (getType() != RenderDataType::Vector4UInt) exception("bad getData type");
   bind();
-  std::vector<glm::uvec4> readValues(count);
-  return readValues;
+  return getDataRange_helper<glm::uvec4>(start, count);
 }
+
 
 uint32_t GLAttributeBuffer::getNativeBufferID() { return 777; }
 
@@ -463,6 +315,25 @@ GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, uns
   setFilterMode(FilterMode::Nearest);
 }
 
+// create a 3D texture from data
+GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_, unsigned int sizeZ_,
+                                 const unsigned char* data)
+    : TextureBuffer(3, format_, sizeX_, sizeY_, sizeZ_) {
+
+  checkGLError();
+
+  setFilterMode(FilterMode::Nearest);
+}
+
+GLTextureBuffer::GLTextureBuffer(TextureFormat format_, unsigned int sizeX_, unsigned int sizeY_, unsigned int sizeZ_,
+                                 const float* data)
+    : TextureBuffer(3, format_, sizeX_, sizeY_, sizeZ_) {
+
+  checkGLError();
+
+  setFilterMode(FilterMode::Nearest);
+}
+
 GLTextureBuffer::~GLTextureBuffer() {}
 
 void GLTextureBuffer::resize(unsigned int newLen) {
@@ -471,9 +342,8 @@ void GLTextureBuffer::resize(unsigned int newLen) {
 
   bind();
   if (dim == 1) {
-  }
-  if (dim == 2) {
-    exception("OpenGL error: called 1D resize on 2D texture");
+  } else {
+    exception("OpenGL error: called 1D resize on not-1D texture");
   }
   checkGLError();
 }
@@ -483,13 +353,113 @@ void GLTextureBuffer::resize(unsigned int newX, unsigned int newY) {
   TextureBuffer::resize(newX, newY);
 
   bind();
-  if (dim == 1) {
-    exception("OpenGL error: called 2D resize on 1D texture");
-  }
   if (dim == 2) {
+  } else {
+    exception("OpenGL error: called 2D resize on not-2D texture");
   }
   checkGLError();
 }
+
+void GLTextureBuffer::resize(unsigned int newX, unsigned int newY, unsigned int newZ) {
+
+  TextureBuffer::resize(newX, newY, newZ);
+
+  bind();
+  if (dim == 3) {
+  } else {
+    exception("OpenGL error: called 3D resize on not-3D texture");
+  }
+  checkGLError();
+}
+
+void GLTextureBuffer::setData(const std::vector<glm::vec2>& data) { exception("not implemented"); }
+
+
+void GLTextureBuffer::setData(const std::vector<glm::vec3>& data) {
+
+  bind();
+
+  if (data.size() != getTotalSize()) {
+    exception("OpenGL error: texture buffer data is not the right size.");
+  }
+
+  switch (dim) {
+  case 1:
+    break;
+  case 2:
+    break;
+  case 3:
+    break;
+  }
+
+  checkGLError();
+}
+
+void GLTextureBuffer::setData(const std::vector<glm::vec4>& data) {
+
+  bind();
+
+  if (data.size() != getTotalSize()) {
+    exception("OpenGL error: texture buffer data is not the right size.");
+  }
+
+  switch (dim) {
+  case 1:
+    break;
+  case 2:
+    break;
+  case 3:
+    break;
+  }
+
+  checkGLError();
+}
+
+void GLTextureBuffer::setData(const std::vector<float>& data) {
+  bind();
+
+  if (data.size() != getTotalSize()) {
+    exception("OpenGL error: texture buffer data is not the right size.");
+  }
+
+  switch (dim) {
+  case 1:
+    break;
+  case 2:
+    break;
+  case 3:
+    break;
+  }
+
+  checkGLError();
+}
+
+void GLTextureBuffer::setData(const std::vector<double>& data) {
+  bind();
+
+  if (data.size() != getTotalSize()) {
+    exception("OpenGL error: texture buffer data is not the right size.");
+  }
+
+  switch (dim) {
+  case 1:
+    break;
+  case 2:
+    break;
+  case 3:
+    break;
+  }
+
+  checkGLError();
+};
+void GLTextureBuffer::setData(const std::vector<int32_t>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<uint32_t>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<glm::uvec2>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<glm::uvec3>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<glm::uvec4>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<std::array<glm::vec3, 2>>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<std::array<glm::vec3, 3>>& data) { exception("not implemented"); };
+void GLTextureBuffer::setData(const std::vector<std::array<glm::vec3, 4>>& data) { exception("not implemented"); };
 
 void GLTextureBuffer::setFilterMode(FilterMode newMode) {
 
@@ -516,6 +486,7 @@ void GLTextureBuffer::setFilterMode(FilterMode newMode) {
 }
 
 void* GLTextureBuffer::getNativeHandle() { return nullptr; }
+uint32_t GLTextureBuffer::getNativeBufferID() { return 77; };
 
 std::vector<float> GLTextureBuffer::getDataScalar() {
   if (dimension(format) != 1) exception("called getDataScalar on texture which does not have a 1 dimensional format");
@@ -710,6 +681,8 @@ void GLFrameBuffer::blitTo(FrameBuffer* targetIn) {
   bindForRendering();
   checkGLError();
 }
+
+uint32_t GLFrameBuffer::getNativeBufferID() { return 0; }
 
 // =============================================================
 // ==================  Shader Program  =========================
@@ -1409,55 +1382,49 @@ void GLShaderProgram::setTextureFromColormap(std::string name, const std::string
   throw std::invalid_argument("No texture with name " + name);
 }
 
-void GLShaderProgram::setIndex(std::vector<std::array<unsigned int, 3>>& indices) {
+void GLShaderProgram::setIndex(std::shared_ptr<AttributeBuffer> externalBuffer) {
   if (!useIndex) {
     throw std::invalid_argument("Tried to setIndex() when program drawMode does not use indexed "
                                 "drawing");
   }
 
-  // Reshape the vector
-  // Right now, the data is probably laid out in this form already... but let's
-  // not be overly clever and just reshape it.
-  unsigned int* rawData = new unsigned int[3 * indices.size()];
-  indexSize = 3 * indices.size();
-  for (unsigned int i = 0; i < indices.size(); i++) {
-    rawData[3 * i + 0] = static_cast<float>(indices[i][0]);
-    rawData[3 * i + 1] = static_cast<float>(indices[i][1]);
-    rawData[3 * i + 2] = static_cast<float>(indices[i][2]);
+  // cast to the engine type (booooooo)
+  std::shared_ptr<GLAttributeBuffer> engineExtBuff = std::dynamic_pointer_cast<GLAttributeBuffer>(externalBuffer);
+  if (!engineExtBuff) throw std::invalid_argument("index attribute external buffer engine type cast failed");
+
+  switch (engineExtBuff->getType()) {
+  case RenderDataType::Int:
+    // NOTE: the render pass expects these to be unsigned.... but negative
+    // values don't make sense anyway, so I think it's okay to just let it slide
+    indexSizeMult = 1;
+    break;
+  case RenderDataType::UInt:
+    indexSizeMult = 1;
+    break;
+  case RenderDataType::Vector2UInt:
+    indexSizeMult = 2;
+    break;
+  case RenderDataType::Vector3UInt:
+    indexSizeMult = 3;
+    break;
+  case RenderDataType::Vector4UInt:
+    indexSizeMult = 4;
+    break;
+  case RenderDataType::Float:
+  case RenderDataType::Vector2Float:
+  case RenderDataType::Vector3Float:
+  case RenderDataType::Vector4Float:
+  case RenderDataType::Matrix44Float:
+    throw std::invalid_argument("index buffer should be integer type");
+    break;
   }
 
-  delete[] rawData;
-}
+  indexBuffer = engineExtBuff;
 
-void GLShaderProgram::setIndex(std::vector<glm::uvec3>& indices) {
-  if (!useIndex) {
-    throw std::invalid_argument("Tried to setIndex() when program drawMode does not use indexed "
-                                "drawing");
-  }
+  // bind it as the VAOs index buffer
+  bindVAO();
 
-  indexSize = 3 * indices.size();
-}
-
-void GLShaderProgram::setIndex(std::vector<unsigned int>& indices) {
-  // (This version is typically used for indexed lines)
-
-  if (!useIndex) {
-    throw std::invalid_argument("Tried to setIndex() when program drawMode does not use indexed "
-                                "drawing");
-  }
-
-  // Catch some cases where we forget to specify the restart index.
-  // It would be nice to do a more complete check involving the data buffer, but this is simple
-  // and catches most mistakes.
-  if (usePrimitiveRestart && !primitiveRestartIndexSet) {
-    unsigned int bigThresh = 99999999;
-    for (unsigned int x : indices) {
-      if (x > bigThresh) {
-        throw std::invalid_argument("An unusual index was passed, but setPrimitiveRestartIndex() has not been called.");
-      }
-    }
-  }
-  indexSize = indices.size();
+  checkGLError();
 }
 
 // Check that uniforms and attributes are all set and of consistent size
@@ -1482,9 +1449,9 @@ void GLShaderProgram::validateData() {
     int compatCount = renderDataTypeCountCompatbility(a.type, a.buff->getType());
 
     if (attributeSize == -1) { // first one we've seen
-      attributeSize = a.buff->getDataSize() / (a.arrayCount * compatCount);
+      attributeSize = a.buff->getDataSize() / (compatCount);
     } else { // not the first one we've seen
-      if (a.buff->getDataSize() / (a.arrayCount * compatCount) != attributeSize) {
+      if (a.buff->getDataSize() / (compatCount) != attributeSize) {
         throw std::invalid_argument("Attributes have inconsistent size. One attribute has size " +
                                     std::to_string(attributeSize) + " and " + a.name + " has size " +
                                     std::to_string(a.buff->getDataSize()));
@@ -1501,11 +1468,22 @@ void GLShaderProgram::validateData() {
   }
 
   // Check index (if applicable)
+  if (useIndex && !indexBuffer) {
+    throw std::invalid_argument("Index buffer has not been filled");
+  }
+
+  // Set the size
   if (useIndex) {
-    if (indexSize == -1) {
-      throw std::invalid_argument("Index buffer has not been filled");
+    drawDataLength = static_cast<unsigned int>(indexSizeMult * indexBuffer->getDataSize());
+  } else {
+    drawDataLength = static_cast<unsigned int>(attributeSize);
+  }
+
+  // Check instanced (if applicable)
+  if (drawMode == DrawMode::TrianglesInstanced || drawMode == DrawMode::TriangleStripInstanced) {
+    if (instanceCount == INVALID_IND_32) {
+      throw std::invalid_argument("Must set instance count to use instanced drawing");
     }
-    drawDataLength = static_cast<unsigned int>(indexSize);
   }
 }
 
@@ -1516,6 +1494,8 @@ void GLShaderProgram::setPrimitiveRestartIndex(unsigned int restartIndex_) {
   restartIndex = restartIndex_;
   primitiveRestartIndexSet = true;
 }
+
+void GLShaderProgram::setInstanceCount(uint32_t instanceCount_) { instanceCount = instanceCount_; }
 
 void GLShaderProgram::activateTextures() {
   for (GLShaderTexture& t : textures) {
@@ -1561,6 +1541,10 @@ void GLShaderProgram::draw() {
   case DrawMode::IndexedLineStripAdjacency:
     break;
   case DrawMode::IndexedTriangles:
+    break;
+  case DrawMode::TrianglesInstanced:
+    break;
+  case DrawMode::TriangleStripInstanced:
     break;
   }
 
@@ -1663,6 +1647,8 @@ void MockGLEngine::pollEvents() {}
 
 bool MockGLEngine::isKeyPressed(char c) { return false; }
 
+int MockGLEngine::getKeyCode(char c) { return 77; }
+
 void MockGLEngine::ImGuiNewFrame() {
 
   // ImGUI seems to crash without a backend if we don't do this
@@ -1726,6 +1712,18 @@ std::shared_ptr<TextureBuffer> MockGLEngine::generateTextureBuffer(TextureFormat
   GLTextureBuffer* newT = new GLTextureBuffer(format, sizeX_, sizeY_, data);
   return std::shared_ptr<TextureBuffer>(newT);
 }
+std::shared_ptr<TextureBuffer> MockGLEngine::generateTextureBuffer(TextureFormat format, unsigned int sizeX_,
+                                                                   unsigned int sizeY_, unsigned int sizeZ_,
+                                                                   const unsigned char* data) {
+  GLTextureBuffer* newT = new GLTextureBuffer(format, sizeX_, sizeY_, sizeZ_, data);
+  return std::shared_ptr<TextureBuffer>(newT);
+}
+std::shared_ptr<TextureBuffer> MockGLEngine::generateTextureBuffer(TextureFormat format, unsigned int sizeX_,
+                                                                   unsigned int sizeY_, unsigned int sizeZ_,
+                                                                   const float* data) {
+  GLTextureBuffer* newT = new GLTextureBuffer(format, sizeX_, sizeY_, sizeZ_, data);
+  return std::shared_ptr<TextureBuffer>(newT);
+}
 
 
 std::shared_ptr<RenderBuffer> MockGLEngine::generateRenderBuffer(RenderBufferType type, unsigned int sizeX_,
@@ -1757,6 +1755,14 @@ std::string MockGLEngine::programKeyFromRules(const std::string& programName, co
   switch (defaults) {
   case ShaderReplacementDefaults::SceneObject: {
     for (const std::string& s : defaultRules_sceneObject) builder << s << "# ";
+    break;
+  }
+  case ShaderReplacementDefaults::SceneObjectNoSlice: {
+    for (const std::string& s : defaultRules_sceneObject) {
+      if (s.rfind("SLICE_PLANE_", 0) != 0) {
+        builder << s << "# ";
+      }
+    }
     break;
   }
   case ShaderReplacementDefaults::Pick: {
@@ -1802,15 +1808,23 @@ std::shared_ptr<GLCompiledProgram> MockGLEngine::getCompiledProgram(const std::s
     std::vector<std::string> fullCustomRules = customRules;
     switch (defaults) {
     case ShaderReplacementDefaults::SceneObject: {
-      fullCustomRules.insert(fullCustomRules.begin(), defaultRules_sceneObject.begin(), defaultRules_sceneObject.end());
+      fullCustomRules.insert(fullCustomRules.end(), defaultRules_sceneObject.begin(), defaultRules_sceneObject.end());
+      break;
+    }
+    case ShaderReplacementDefaults::SceneObjectNoSlice: {
+      for (const std::string& rule : defaultRules_sceneObject) {
+        if (rule.rfind("SLICE_PLANE_", 0) != 0) {
+          fullCustomRules.insert(fullCustomRules.end(), rule);
+        }
+      }
       break;
     }
     case ShaderReplacementDefaults::Pick: {
-      fullCustomRules.insert(fullCustomRules.begin(), defaultRules_pick.begin(), defaultRules_pick.end());
+      fullCustomRules.insert(fullCustomRules.end(), defaultRules_pick.begin(), defaultRules_pick.end());
       break;
     }
     case ShaderReplacementDefaults::Process: {
-      fullCustomRules.insert(fullCustomRules.begin(), defaultRules_process.begin(), defaultRules_process.end());
+      fullCustomRules.insert(fullCustomRules.end(), defaultRules_process.begin(), defaultRules_process.end());
       break;
     }
     case ShaderReplacementDefaults::None: {
@@ -1822,6 +1836,11 @@ std::shared_ptr<GLCompiledProgram> MockGLEngine::getCompiledProgram(const std::s
     std::vector<ShaderReplacementRule> rules;
     for (auto it = fullCustomRules.begin(); it < fullCustomRules.end(); it++) {
       std::string& ruleName = *it;
+
+      // Empty rule is a no-op
+      if (ruleName == "") {
+        continue;
+      }
 
       // Only process each rule the first time it is seen
       if (std::find(fullCustomRules.begin(), it, ruleName) != it) {
@@ -1872,10 +1891,13 @@ void MockGLEngine::populateDefaultShadersAndRules() {
 
   // == Load general base shaders
   registerShaderProgram("MESH", {FLEX_MESH_VERT_SHADER, FLEX_MESH_FRAG_SHADER}, DrawMode::Triangles);
-  registerShaderProgram("SLICE_TETS", {SLICE_TETS_VERT_SHADER, SLICE_TETS_GEOM_SHADER, SLICE_TETS_FRAG_SHADER}, DrawMode::Points);
   registerShaderProgram("INDEXED_MESH", {FLEX_MESH_VERT_SHADER, FLEX_MESH_FRAG_SHADER}, DrawMode::IndexedTriangles);
+  registerShaderProgram("SIMPLE_MESH", {SIMPLE_MESH_VERT_SHADER, SIMPLE_MESH_FRAG_SHADER}, DrawMode::IndexedTriangles);
+  registerShaderProgram("SLICE_TETS", {SLICE_TETS_VERT_SHADER, SLICE_TETS_GEOM_SHADER, SLICE_TETS_FRAG_SHADER}, DrawMode::Points);
   registerShaderProgram("RAYCAST_SPHERE", {FLEX_SPHERE_VERT_SHADER, FLEX_SPHERE_GEOM_SHADER, FLEX_SPHERE_FRAG_SHADER}, DrawMode::Points);
   registerShaderProgram("POINT_QUAD", {FLEX_POINTQUAD_VERT_SHADER, FLEX_POINTQUAD_GEOM_SHADER, FLEX_POINTQUAD_FRAG_SHADER}, DrawMode::Points);
+  registerShaderProgram("GRIDCUBE", {FLEX_GRIDCUBE_VERT_SHADER, FLEX_GRIDCUBE_GEOM_SHADER, FLEX_GRIDCUBE_FRAG_SHADER}, DrawMode::Points);
+  registerShaderProgram("GRIDCUBE_PLANE", {FLEX_GRIDCUBE_PLANE_VERT_SHADER, FLEX_GRIDCUBE_PLANE_FRAG_SHADER}, DrawMode::Triangles);
   registerShaderProgram("RAYCAST_VECTOR", {FLEX_VECTOR_VERT_SHADER, FLEX_VECTOR_GEOM_SHADER, FLEX_VECTOR_FRAG_SHADER}, DrawMode::Points);
   registerShaderProgram("RAYCAST_TANGENT_VECTOR", {FLEX_TANGENT_VECTOR_VERT_SHADER, FLEX_VECTOR_GEOM_SHADER, FLEX_VECTOR_FRAG_SHADER}, DrawMode::Points);
   registerShaderProgram("RAYCAST_CYLINDER", {FLEX_CYLINDER_VERT_SHADER, FLEX_CYLINDER_GEOM_SHADER, FLEX_CYLINDER_FRAG_SHADER}, DrawMode::Points);
@@ -1892,6 +1914,7 @@ void MockGLEngine::populateDefaultShadersAndRules() {
   registerShaderProgram("TEXTURE_DRAW_MAP3", {TEXTURE_DRAW_VERT_SHADER, MAP3_TEXTURE_DRAW_FRAG_SHADER}, DrawMode::Triangles);
   registerShaderProgram("TEXTURE_DRAW_SPHEREBG", {SPHEREBG_DRAW_VERT_SHADER, SPHEREBG_DRAW_FRAG_SHADER}, DrawMode::Triangles);
   registerShaderProgram("TEXTURE_DRAW_RENDERIMAGE_PLAIN", {TEXTURE_DRAW_VERT_SHADER, PLAIN_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER}, DrawMode::Triangles);
+  registerShaderProgram("TEXTURE_DRAW_RAW_RENDERIMAGE_PLAIN", {TEXTURE_DRAW_VERT_SHADER, PLAIN_RAW_RENDERIMAGE_TEXTURE_DRAW_FRAG_SHADER}, DrawMode::Triangles);
   registerShaderProgram("COMPOSITE_PEEL", {TEXTURE_DRAW_VERT_SHADER, COMPOSITE_PEEL}, DrawMode::Triangles);
   registerShaderProgram("DEPTH_COPY", {TEXTURE_DRAW_VERT_SHADER, DEPTH_COPY}, DrawMode::Triangles);
   registerShaderProgram("DEPTH_TO_MASK", {TEXTURE_DRAW_VERT_SHADER, DEPTH_TO_MASK}, DrawMode::Triangles);
@@ -1915,13 +1938,17 @@ void MockGLEngine::populateDefaultShadersAndRules() {
   registerShaderRule("TRANSPARENCY_PEEL_GROUND", TRANSPARENCY_PEEL_GROUND);
   
   registerShaderRule("GENERATE_VIEW_POS", GENERATE_VIEW_POS);
+  registerShaderRule("COMPUTE_SHADE_NORMAL_FROM_POSITION", COMPUTE_SHADE_NORMAL_FROM_POSITION);
+  registerShaderRule("PREMULTIPLY_LIT_COLOR", PREMULTIPLY_LIT_COLOR);
   registerShaderRule("CULL_POS_FROM_VIEW", CULL_POS_FROM_VIEW);
+  registerShaderRule("PROJ_AND_INV_PROJ_MAT", PROJ_AND_INV_PROJ_MAT);
 
   // Lighting and shading things
   registerShaderRule("LIGHT_MATCAP", LIGHT_MATCAP);
   registerShaderRule("LIGHT_PASSTHRU", LIGHT_PASSTHRU);
   registerShaderRule("SHADE_BASECOLOR", SHADE_BASECOLOR);
   registerShaderRule("SHADE_COLOR", SHADE_COLOR);
+  registerShaderRule("SHADECOLOR_FROM_UNIFORM", SHADECOLOR_FROM_UNIFORM);
   registerShaderRule("SHADE_COLORMAP_VALUE", SHADE_COLORMAP_VALUE);
   registerShaderRule("SHADE_COLORMAP_ANGULAR2", SHADE_COLORMAP_ANGULAR2);
   registerShaderRule("SHADE_GRID_VALUE2", SHADE_GRID_VALUE2);
@@ -1929,30 +1956,44 @@ void MockGLEngine::populateDefaultShadersAndRules() {
   registerShaderRule("SHADEVALUE_MAG_VALUE2", SHADEVALUE_MAG_VALUE2);
   registerShaderRule("ISOLINE_STRIPE_VALUECOLOR", ISOLINE_STRIPE_VALUECOLOR);
   registerShaderRule("CHECKER_VALUE2COLOR", CHECKER_VALUE2COLOR);
+  registerShaderRule("INVERSE_TONEMAP", INVERSE_TONEMAP);
  
   // Texture and image things
   registerShaderRule("TEXTURE_ORIGIN_UPPERLEFT", TEXTURE_ORIGIN_UPPERLEFT);
   registerShaderRule("TEXTURE_ORIGIN_LOWERLEFT", TEXTURE_ORIGIN_LOWERLEFT);
   registerShaderRule("TEXTURE_SET_TRANSPARENCY", TEXTURE_SET_TRANSPARENCY);
+  registerShaderRule("TEXTURE_PREMULTIPLY_OUT", TEXTURE_PREMULTIPLY_OUT);
   registerShaderRule("TEXTURE_SHADE_COLOR", TEXTURE_SHADE_COLOR);
+  registerShaderRule("TEXTURE_SHADE_COLORALPHA", TEXTURE_SHADE_COLORALPHA);
   registerShaderRule("TEXTURE_PROPAGATE_VALUE", TEXTURE_PROPAGATE_VALUE);
+  registerShaderRule("TEXTURE_PROPAGATE_COLOR", TEXTURE_PROPAGATE_COLOR);
   registerShaderRule("TEXTURE_BILLBOARD_FROM_UNIFORMS", TEXTURE_BILLBOARD_FROM_UNIFORMS);
+  registerShaderRule("SHADE_NORMAL_FROM_TEXTURE", SHADE_NORMAL_FROM_TEXTURE);
+  registerShaderRule("SHADE_NORMAL_FROM_VIEWPOS_VAR", SHADE_NORMAL_FROM_VIEWPOS_VAR);
 
   // mesh things
   registerShaderRule("MESH_WIREFRAME", MESH_WIREFRAME);
+  registerShaderRule("MESH_WIREFRAME_FROM_BARY", MESH_WIREFRAME_FROM_BARY);
   registerShaderRule("MESH_WIREFRAME_ONLY", MESH_WIREFRAME_ONLY);
-  registerShaderRule("MESH_COMPUTE_NORMAL_FROM_POSITION", MESH_COMPUTE_NORMAL_FROM_POSITION);
   registerShaderRule("MESH_BACKFACE_NORMAL_FLIP", MESH_BACKFACE_NORMAL_FLIP);
   registerShaderRule("MESH_BACKFACE_DIFFERENT", MESH_BACKFACE_DIFFERENT);
   registerShaderRule("MESH_BACKFACE_DARKEN", MESH_BACKFACE_DARKEN);
   registerShaderRule("MESH_PROPAGATE_VALUE", MESH_PROPAGATE_VALUE);
   registerShaderRule("MESH_PROPAGATE_VALUE2", MESH_PROPAGATE_VALUE2);
+  registerShaderRule("MESH_PROPAGATE_TCOORD", MESH_PROPAGATE_TCOORD);
   registerShaderRule("MESH_PROPAGATE_COLOR", MESH_PROPAGATE_COLOR);
   registerShaderRule("MESH_PROPAGATE_HALFEDGE_VALUE", MESH_PROPAGATE_HALFEDGE_VALUE);
   registerShaderRule("MESH_PROPAGATE_CULLPOS", MESH_PROPAGATE_CULLPOS);
   registerShaderRule("MESH_PROPAGATE_TYPE_AND_BASECOLOR2_SHADE", MESH_PROPAGATE_TYPE_AND_BASECOLOR2_SHADE);
   registerShaderRule("MESH_PROPAGATE_PICK", MESH_PROPAGATE_PICK);
   registerShaderRule("MESH_PROPAGATE_PICK_SIMPLE", MESH_PROPAGATE_PICK_SIMPLE);
+  
+  // volume gridcube things
+  registerShaderRule("GRIDCUBE_PROPAGATE_NODE_VALUE", GRIDCUBE_PROPAGATE_NODE_VALUE);
+  registerShaderRule("GRIDCUBE_PROPAGATE_CELL_VALUE", GRIDCUBE_PROPAGATE_CELL_VALUE);
+  registerShaderRule("GRIDCUBE_WIREFRAME", GRIDCUBE_WIREFRAME);
+  registerShaderRule("GRIDCUBE_CONSTANT_PICK", GRIDCUBE_CONSTANT_PICK);
+  registerShaderRule("GRIDCUBE_CULLPOS_FROM_CENTER", GRIDCUBE_CULLPOS_FROM_CENTER);
 
   // sphere things
   registerShaderRule("SPHERE_PROPAGATE_VALUE", SPHERE_PROPAGATE_VALUE);
@@ -1990,6 +2031,8 @@ void MockGLEngine::populateDefaultShadersAndRules() {
 void MockGLEngine::createSlicePlaneFliterRule(std::string uniquePostfix) {
   using namespace backend_openGL3_glfw;
   registeredShaderRules.insert({"SLICE_PLANE_CULL_" + uniquePostfix, generateSlicePlaneRule(uniquePostfix)});
+  registeredShaderRules.insert(
+      {"SLICE_PLANE_VOLUMEGRID_CULL_" + uniquePostfix, generateVolumeGridSlicePlaneRule(uniquePostfix)});
 }
 
 } // namespace backend_openGL_mock

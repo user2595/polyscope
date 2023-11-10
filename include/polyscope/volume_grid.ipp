@@ -4,42 +4,80 @@
 
 namespace polyscope {
 
-inline size_t VolumeGrid::nValues() const { return steps[0] * steps[1] * steps[2]; }
+inline uint64_t VolumeGrid::nNodes() const {
+  return static_cast<uint64_t>(gridNodeDim.x) * gridNodeDim.y * gridNodeDim.z;
+}
+
+inline uint64_t VolumeGrid::nCells() const {
+  return static_cast<uint64_t>(gridCellDim.x) * gridCellDim.y * gridCellDim.z;
+}
 
 
-inline std::array<size_t, 3> VolumeGrid::flattenIndex(size_t i) const {
-  size_t nYZ = steps[1] * steps[2];
-  size_t iX = i / nYZ;
+// Field data
+inline glm::uvec3 VolumeGrid::getGridNodeDim() const { return gridNodeDim; }
+inline glm::uvec3 VolumeGrid::getGridCellDim() const { return gridCellDim; }
+inline glm::vec3 VolumeGrid::getBoundMin() const { return boundMin; }
+inline glm::vec3 VolumeGrid::getBoundMax() const { return boundMax; }
+
+inline uint64_t VolumeGrid::flattenNodeIndex(glm::uvec3 inds) const {
+  return static_cast<uint64_t>(gridNodeDim[1]) * gridNodeDim[2] * inds.x + gridNodeDim[2] * inds.y + inds.z;
+}
+
+inline glm::uvec3 VolumeGrid::unflattenNodeIndex(uint64_t i) const {
+  uint64_t nYZ = gridNodeDim[1] * gridNodeDim[2];
+  uint64_t iX = i / nYZ;
   i -= iX * nYZ;
-  size_t nZ = steps[2];
-  size_t iY = i / nZ;
+  uint64_t nZ = gridNodeDim[2];
+  uint64_t iY = i / nZ;
   i -= iY * nZ;
-  size_t iZ = i;
-  return std::array<size_t, 3>{iX, iY, iZ};
+  uint64_t iZ = i;
+  return glm::uvec3{static_cast<uint32_t>(iX), static_cast<uint32_t>(iY), static_cast<uint32_t>(iZ)};
 }
 
-inline glm::vec3 VolumeGrid::positionOfIndex(size_t i) const {
-  std::array<size_t, 3> inds = flattenIndex(i);
-  return positionOfIndex(inds);
+inline glm::vec3 VolumeGrid::positionOfNodeIndex(uint64_t i) const {
+  glm::uvec3 inds = unflattenNodeIndex(i);
+  return positionOfNodeIndex(inds);
 }
 
-inline glm::vec3 VolumeGrid::positionOfIndex(std::array<size_t, 3> inds) const {
-  glm::vec3 tVals{
-      static_cast<float>(inds[0]) / (steps[0] - 1),
-      static_cast<float>(inds[1]) / (steps[1] - 1),
-      static_cast<float>(inds[2]) / (steps[2] - 1),
-  };
-  return (1.f - tVals) * bound_min + tVals * bound_max;
+inline glm::vec3 VolumeGrid::positionOfNodeIndex(glm::uvec3 inds) const {
+  glm::vec3 tVals = glm::vec3(inds) / glm::vec3(gridNodeDim - 1u);
+  return (1.f - tVals) * boundMin + tVals * boundMax;
+}
+
+inline uint64_t VolumeGrid::flattenCellIndex(glm::uvec3 inds) const {
+  return static_cast<uint64_t>(gridCellDim[1]) * gridCellDim[2] * inds.x + gridCellDim[2] * inds.y + inds.z;
+}
+
+inline glm::uvec3 VolumeGrid::unflattenCellIndex(uint64_t i) const {
+  uint64_t nYZ = gridCellDim[1] * gridCellDim[2];
+  uint64_t iX = i / nYZ;
+  i -= iX * nYZ;
+  uint64_t nZ = gridCellDim[2];
+  uint64_t iY = i / nZ;
+  i -= iY * nZ;
+  uint64_t iZ = i;
+  return glm::uvec3{static_cast<uint32_t>(iX), static_cast<uint32_t>(iY), static_cast<uint32_t>(iZ)};
+}
+
+inline glm::vec3 VolumeGrid::positionOfCellIndex(uint64_t i) const {
+  glm::uvec3 inds = unflattenCellIndex(i);
+  return positionOfCellIndex(inds);
+}
+
+inline glm::vec3 VolumeGrid::positionOfCellIndex(glm::uvec3 inds) const {
+  glm::vec3 tVals = (glm::vec3(inds) / glm::vec3(gridCellDim));
+  return (1.f - tVals) * boundMin + tVals * boundMax + gridSpacing() / 2.f;
 }
 
 inline glm::vec3 VolumeGrid::gridSpacing() const {
-  glm::vec3 width = bound_max - bound_min;
-  glm::vec3 spacing = width / glm::vec3{
-                                  steps[0] - 1.f,
-                                  steps[1] - 1.f,
-                                  steps[2] - 1.f,
-                              };
+  glm::vec3 width = boundMax - boundMin;
+  glm::vec3 spacing = width / (glm::vec3(gridCellDim));
   return spacing;
+}
+
+inline glm::vec3 VolumeGrid::gridSpacingReference() const {
+  glm::vec3 refSpacing{1.f / gridCellDim.x, 1.f / gridCellDim.y, 1.f / gridCellDim.z};
+  return refSpacing;
 }
 
 inline float VolumeGrid::minGridSpacing() const {
@@ -62,84 +100,90 @@ inline void removeVolumeGrid(std::string name, bool errorIfAbsent) {
 // =====================================================
 
 template <class T>
-VolumeGridScalarQuantity* VolumeGrid::addScalarQuantity(std::string name, const T& values, DataType dataType_) {
-  validateSize(values, nValues(), "grid scalar quantity " + name);
-  return addScalarQuantityImpl(name, standardizeArray<double, T>(values), dataType_);
-}
-
-template <class Func>
-VolumeGridScalarQuantity* VolumeGrid::addScalarQuantityFromCallable(std::string name, Func&& func, DataType dataType_) {
-
-  // Sample to grid
-  std::vector<double> values(nValues());
-  for (size_t i = 0; i < values.size(); i++) {
-    glm::vec3 pos = positionOfIndex(i);
-    values[i] = func(pos.x, pos.y, pos.z);
-  }
-
-  return addScalarQuantityImpl(name, values, dataType_);
+VolumeGridNodeScalarQuantity* VolumeGrid::addNodeScalarQuantity(std::string name, const T& values, DataType dataType_) {
+  validateSize(values, nNodes(), "grid node scalar quantity " + name);
+  return addNodeScalarQuantityImpl(name, standardizeArray<double, T>(values), dataType_);
 }
 
 
 template <class Func>
-VolumeGridScalarQuantity* VolumeGrid::addScalarQuantityFromBatchCallable(std::string name, Func&& func,
-                                                                         DataType dataType_) {
+VolumeGridNodeScalarQuantity* VolumeGrid::addNodeScalarQuantityFromCallable(std::string name, Func&& func,
+                                                                            DataType dataType_) {
 
+  // Boostrap off the batch version
+  auto batchFunc = [&](float* pos_ptr, float* result_ptr, size_t N) {
+    for (size_t i = 0; i < N; i++) {
+      glm::vec3 pos{pos_ptr[3 * i + 0], pos_ptr[3 * i + 1], pos_ptr[3 * i + 2]};
+      result_ptr[i] = func(pos);
+    }
+  };
+
+  return addNodeScalarQuantityFromBatchCallable(name, batchFunc, dataType_);
+}
+
+
+template <class Func>
+VolumeGridNodeScalarQuantity* VolumeGrid::addNodeScalarQuantityFromBatchCallable(std::string name, Func&& func,
+                                                                                 DataType dataType_) {
   // Build list of points to query
-  std::vector<std::array<double, 3>> queries(nValues());
+  std::vector<float> queries(3 * nNodes());
+  std::vector<float> result(nNodes());
 
   // Sample to grid
-  for (size_t i = 0; i < queries.size(); i++) {
-    glm::vec3 pos = positionOfIndex(i);
-    queries[i][0] = pos.x;
-    queries[i][1] = pos.y;
-    queries[i][2] = pos.z;
+  for (size_t i = 0; i < nNodes(); i++) {
+    glm::vec3 pos = positionOfNodeIndex(i);
+    queries[3 * i + 0] = pos.x;
+    queries[3 * i + 1] = pos.y;
+    queries[3 * i + 2] = pos.z;
   }
 
-  return addScalarQuantity(name, func(queries), dataType_);
-}
+  func(&queries.front(), &result.front(), static_cast<size_t>(nNodes()));
 
+  return addNodeScalarQuantity(name, result, dataType_);
+}
 
 template <class T>
-VolumeGridVectorQuantity* VolumeGrid::addVectorQuantity(std::string name, const T& vecValues, VectorType dataType_) {
-  validateSize(vecValues, nValues(), "grid vector quantity " + name);
-  return addVectorQuantityImpl(name, standardizeArray<glm::vec3, T>(vecValues), dataType_);
+VolumeGridCellScalarQuantity* VolumeGrid::addCellScalarQuantity(std::string name, const T& values, DataType dataType_) {
+  validateSize(values, nCells(), "grid cell scalar quantity " + name);
+  return addCellScalarQuantityImpl(name, standardizeArray<double, T>(values), dataType_);
 }
 
-/*
-VolumeGridScalarIsosurface* VolumeGrid::addGridIsosurfaceQuantity(std::string name, double isoLevel, const T& values) {
-  validateSize(values, nValues(), "grid isosurface quantity " + name);
-  return addIsosurfaceQuantityImpl(name, isoLevel, standardizeArray<double, T>(values));
+
+template <class Func>
+VolumeGridCellScalarQuantity* VolumeGrid::addCellScalarQuantityFromCallable(std::string name, Func&& func,
+                                                                            DataType dataType_) {
+
+  // Boostrap off the batch version
+  auto batchFunc = [&](float* pos_ptr, float* result_ptr, size_t N) {
+    for (size_t i = 0; i < N; i++) {
+      glm::vec3 pos{pos_ptr[3 * i + 0], pos_ptr[3 * i + 1], pos_ptr[3 * i + 2]};
+      result_ptr[i] = func(pos);
+    }
+  };
+
+  return addCellScalarQuantityFromBatchCallable(name, batchFunc, dataType_);
 }
 
-template <class Funct>
-VolumeGridScalarQuantity* VolumeGrid::addGridScalarQuantityFromFunction(std::string name, const Funct& funct,
-                                                                        DataType dataType_) {
-  size_t totalValues = nCornersPerSide * nCornersPerSide * nCornersPerSide;
-  std::vector<double> field(totalValues);
-  marchingcubes::SampleFunctionToGrid(funct, nCornersPerSide, gridCenter, sideLength, field);
-  return addGridScalarQuantity(name, field, dataType_);
+
+template <class Func>
+VolumeGridCellScalarQuantity* VolumeGrid::addCellScalarQuantityFromBatchCallable(std::string name, Func&& func,
+                                                                                 DataType dataType_) {
+  // Build list of points to query
+  std::vector<float> queries(3 * nCells());
+  std::vector<float> result(nCells());
+
+  // Sample to grid
+  for (size_t i = 0; i < nCells(); i++) {
+    glm::vec3 pos = positionOfCellIndex(i);
+    queries[3 * i + 0] = pos.x;
+    queries[3 * i + 1] = pos.y;
+    queries[3 * i + 2] = pos.z;
+  }
+
+  func(&queries.front(), &result.front(), static_cast<size_t>(nCells()));
+
+  return addCellScalarQuantity(name, result, dataType_);
 }
 
-template <class Funct>
-VolumeGridVectorQuantity* VolumeGrid::addGridVectorQuantityFromFunction(std::string name, const Funct& funct,
-                                                                        VectorType dataType_) {
-  size_t totalValues = nCornersPerSide * nCornersPerSide * nCornersPerSide;
-  std::vector<glm::vec3> field(totalValues);
-  marchingcubes::SampleFunctionToGrid(funct, nCornersPerSide, gridCenter, sideLength, field);
-  return addGridVectorQuantity(name, field, dataType_);
-}
-*/
-
-/*
-template <typename Implicit>
-VolumeGrid* registerIsosurfaceFromFunction(std::string name, const Implicit& funct, size_t nValuesPerSide,
-                                           glm::vec3 center, double sideLen, bool meshImmediately = true) {
-
-  VolumeGrid* outputSurface = registerVolumeGrid(name, nValuesPerSide, center, sideLen);
-  outputSurface->addGridIsosurfaceQuantityFromFunction("isosurface", 0, funct);
-  return outputSurface;
-}
-*/
 
 } // namespace polyscope

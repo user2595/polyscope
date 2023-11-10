@@ -25,12 +25,12 @@ const std::string PointCloud::structureTypeName = "Point Cloud";
 PointCloud::PointCloud(std::string name, std::vector<glm::vec3> points_)
     : // clang-format off
     QuantityStructure<PointCloud>(name, structureTypeName), 
-      points(uniquePrefix() + "#points", pointsData),
+      points(this, uniquePrefix() + "points", pointsData),
       pointsData(std::move(points_)), 
-      pointRenderMode(uniquePrefix() + "#pointRenderMode", "sphere"),
-      pointColor(uniquePrefix() + "#pointColor", getNextUniqueColor()),
-      pointRadius(uniquePrefix() + "#pointRadius", relativeValue(0.005)),
-      material(uniquePrefix() + "#material", "clay")
+      pointRenderMode(uniquePrefix() + "pointRenderMode", "sphere"),
+      pointColor(uniquePrefix() + "pointColor", getNextUniqueColor()),
+      pointRadius(uniquePrefix() + "pointRadius", relativeValue(0.005)),
+      material(uniquePrefix() + "material", "clay")
 // clang-format on
 {
   cullWholeElements.setPassive(true);
@@ -87,6 +87,7 @@ void PointCloud::draw() {
     // Set program uniforms
     setStructureUniforms(*program);
     setPointCloudUniforms(*program);
+    render::engine->setMaterialUniforms(*program, material.get());
     program->setUniform("u_baseColor", pointColor.get());
 
     // Draw the actual point cloud
@@ -135,15 +136,18 @@ void PointCloud::ensureRenderProgramPrepared() {
   if (program) return;
 
   // clang-format off
-  program = render::engine->requestShader(
-      getShaderNameForRenderMode(), 
-      addPointCloudRules({"SHADE_BASECOLOR"})
+  program = render::engine->requestShader( getShaderNameForRenderMode(), 
+    render::engine->addMaterialRules(getMaterial(),
+      addPointCloudRules(
+        {"SHADE_BASECOLOR"}
+      )
+    )
   );
   // clang-format on
 
   setPointProgramGeometryAttributes(*program);
 
-  render::engine->setMaterial(*program, material.get());
+  render::engine->setMaterial(*program, getMaterial());
 }
 
 void PointCloud::ensurePickProgramPrepared() {
@@ -371,6 +375,7 @@ void PointCloudQuantity::buildInfoGUI(size_t pointInd) {}
 
 
 PointCloudColorQuantity* PointCloud::addColorQuantityImpl(std::string name, const std::vector<glm::vec3>& colors) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   PointCloudColorQuantity* q = new PointCloudColorQuantity(name, colors, *this);
   addQuantity(q);
   return q;
@@ -378,6 +383,7 @@ PointCloudColorQuantity* PointCloud::addColorQuantityImpl(std::string name, cons
 
 PointCloudScalarQuantity* PointCloud::addScalarQuantityImpl(std::string name, const std::vector<double>& data,
                                                             DataType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   PointCloudScalarQuantity* q = new PointCloudScalarQuantity(name, data, *this, type);
   addQuantity(q);
   return q;
@@ -386,6 +392,7 @@ PointCloudScalarQuantity* PointCloud::addScalarQuantityImpl(std::string name, co
 PointCloudParameterizationQuantity* PointCloud::addParameterizationQuantityImpl(std::string name,
                                                                                 const std::vector<glm::vec2>& param,
                                                                                 ParamCoordsType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   PointCloudParameterizationQuantity* q =
       new PointCloudParameterizationQuantity(name, *this, param, type, ParamVizStyle::CHECKER);
   addQuantity(q);
@@ -395,6 +402,7 @@ PointCloudParameterizationQuantity* PointCloud::addParameterizationQuantityImpl(
 PointCloudParameterizationQuantity*
 PointCloud::addLocalParameterizationQuantityImpl(std::string name, const std::vector<glm::vec2>& param,
                                                  ParamCoordsType type) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   PointCloudParameterizationQuantity* q =
       new PointCloudParameterizationQuantity(name, *this, param, type, ParamVizStyle::LOCAL_CHECK);
   addQuantity(q);
@@ -403,6 +411,7 @@ PointCloud::addLocalParameterizationQuantityImpl(std::string name, const std::ve
 
 PointCloudVectorQuantity* PointCloud::addVectorQuantityImpl(std::string name, const std::vector<glm::vec3>& vectors,
                                                             VectorType vectorType) {
+  checkForQuantityWithNameAndDeleteOrError(name);
   PointCloudVectorQuantity* q = new PointCloudVectorQuantity(name, vectors, *this, vectorType);
   addQuantity(q);
   return q;

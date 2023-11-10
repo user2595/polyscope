@@ -9,6 +9,8 @@
 #include "polyscope/types.h"
 // #include "polyscope/gl/gl_utils.h"
 
+#include "imgui.h"
+
 // GLM for view matrices
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/matrix_transform.hpp"
@@ -31,12 +33,16 @@ using polyscope::NavigateStyle;
 using polyscope::UpDir;
 
 // === View state
+
+// NOTE: users should use setters to set these if they exist, otherwise updates
+// may not be applied immediately.
 extern int bufferWidth;
 extern int bufferHeight;
 extern int windowWidth;
 extern int windowHeight;
 extern int initWindowPosX;
 extern int initWindowPosY;
+extern bool windowResizable;
 extern NavigateStyle style;
 extern UpDir upDir;
 extern FrontDir frontDir;
@@ -46,6 +52,8 @@ extern double farClipRatio;
 extern std::array<float, 4> bgColor;
 
 // Current view camera parameters
+// TODO deprecate these one day, and just use a CameraParameters member instead. But this would break existing code, so
+// for now we leave these as-is and wrap inputs/outputs to a CameraParameters
 extern glm::mat4x4 viewMat;
 extern double fov; // in the y direction
 extern ProjectionMode projectionMode;
@@ -67,11 +75,13 @@ extern const double defaultFov;
 
 void processTranslate(glm::vec2 delta);
 void processRotate(glm::vec2 startP, glm::vec2 endP);
-
 void processClipPlaneShift(double amount);
 void processZoom(double amount);
+void processKeyboardNavigation(ImGuiIO& io);
 
 void setWindowSize(int width, int height);
+std::tuple<int, int> getWindowSize();
+std::tuple<int, int> getBufferSize();
 void setViewToCamera(const CameraParameters& p);
 CameraParameters getCameraParametersForCurrentView();
 
@@ -110,8 +120,15 @@ void startFlightTo(const glm::mat4& T, float targetFov, float flightLengthInSeco
 void immediatelyEndFlight();
 
 // Get and set camera from json string
+std::string getViewAsJson();
+void setViewFromJson(std::string jsonData, bool flyTo);
+// DEPRACTED: old names for avove
 std::string getCameraJson();
 void setCameraFromJson(std::string jsonData, bool flyTo);
+
+// Other helpers
+std::string to_string(ProjectionMode mode);
+std::string to_string(NavigateStyle style);
 
 // Internal helpers. Should probably not be called in user code.
 void buildViewGui();
@@ -128,6 +145,12 @@ glm::vec3 getUpVec();
 void setFrontDir(FrontDir newFrontDir, bool animateFlight = false);
 FrontDir getFrontDir();
 glm::vec3 getFrontVec();
+
+void setNavigateStyle(NavigateStyle newNavigateStyle, bool animateFlight = false);
+NavigateStyle getNavigateStyle();
+
+void setWindowResizable(bool isResizable);
+bool getWindowResizable();
 
 } // namespace view
 } // namespace polyscope

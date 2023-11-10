@@ -30,6 +30,7 @@ void SurfaceParameterizationQuantity::draw() {
   setParameterizationUniforms(*program);
   parent.setStructureUniforms(*program);
   parent.setSurfaceMeshUniforms(*program);
+  render::engine->setMaterialUniforms(*program, parent.getMaterial());
 
   program->draw();
 }
@@ -37,8 +38,17 @@ void SurfaceParameterizationQuantity::draw() {
 void SurfaceParameterizationQuantity::createProgram() {
 
   // Create the program to draw this quantity
-  program = render::engine->requestShader(
-      "MESH", parent.addSurfaceMeshRules(addParameterizationRules({"MESH_PROPAGATE_VALUE2"})));
+  // clang-format off
+  program = render::engine->requestShader("MESH", 
+      render::engine->addMaterialRules(parent.getMaterial(),
+        parent.addSurfaceMeshRules(
+          addParameterizationRules(
+            {"MESH_PROPAGATE_VALUE2"}
+          )
+        )
+      )
+    );
+  //
 
   // Fill buffers
   fillCoordBuffers(*program);
@@ -89,9 +99,9 @@ void SurfaceCornerParameterizationQuantity::fillCoordBuffers(render::ShaderProgr
   p.setAttribute("a_value2", coords.getIndexedRenderAttributeBuffer(parent.triangleCornerInds));
 }
 
-void SurfaceCornerParameterizationQuantity::buildHalfedgeInfoGUI(size_t heInd) {
+void SurfaceCornerParameterizationQuantity::buildCornerInfoGUI(size_t cInd) {
 
-  glm::vec2 coord = coords.getValue(heInd);
+  glm::vec2 coord = coords.getValue(cInd);
 
   ImGui::TextUnformatted(name.c_str());
   ImGui::NextColumn();

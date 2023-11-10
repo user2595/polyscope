@@ -69,6 +69,16 @@ protected:
 private:
   void checkType(RenderDataType targetType);
   void checkArray(int arrayCount);
+
+  // internal implementation helpers
+  template <typename T>
+  void setData_helper(const std::vector<T>& data);
+
+  template <typename T>
+  T getData_helper(size_t ind);
+
+  template <typename T>
+  std::vector<T> getDataRange_helper(size_t start, size_t count);
 };
 
 class GLTextureBuffer : public TextureBuffer {
@@ -81,15 +91,44 @@ public:
   GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, const unsigned char* data = nullptr);
   GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, const float* data);
 
+  // create a 3D texture from data
+  GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, unsigned int sizeZ_,
+                  const unsigned char* data = nullptr);
+  GLTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_, unsigned int sizeZ_,
+                  const float* data);
+
   ~GLTextureBuffer() override;
 
 
   // Resize the underlying buffer (contents are lost)
   void resize(unsigned int newLen) override;
   void resize(unsigned int newX, unsigned int newY) override;
+  void resize(unsigned int newX, unsigned int newY, unsigned int newZ) override;
+
+  // Fill with data
+  // NOTE: some of these are not implemented yet
+  void setData(const std::vector<glm::vec2>& data) override;
+  void setData(const std::vector<glm::vec3>& data) override;
+  void setData(const std::vector<glm::vec4>& data) override;
+  void setData(const std::vector<float>& data) override;
+  void setData(const std::vector<double>& data) override;
+  void setData(const std::vector<int32_t>& data) override;
+  void setData(const std::vector<uint32_t>& data) override;
+  void setData(const std::vector<glm::uvec2>& data) override;
+  void setData(const std::vector<glm::uvec3>& data) override;
+  void setData(const std::vector<glm::uvec4>& data) override;
+
+  // Array-valued
+  // NOTE: some of these are not implemented yet
+  // (adding these lazily as we need them)
+  // (sadly we cannot template the virtual function)
+  void setData(const std::vector<std::array<glm::vec3, 2>>& data) override;
+  void setData(const std::vector<std::array<glm::vec3, 3>>& data) override;
+  void setData(const std::vector<std::array<glm::vec3, 4>>& data) override;
 
   void setFilterMode(FilterMode newMode) override;
   void* getNativeHandle() override;
+  uint32_t getNativeBufferID() override;
 
   std::vector<float> getDataScalar() override;
   std::vector<glm::vec2> getDataVector2() override;
@@ -143,6 +182,7 @@ public:
   void blitTo(FrameBuffer* other) override;
 
   // Getters
+  uint32_t getNativeBufferID() override;
 
 protected:
 };
@@ -236,18 +276,12 @@ public:
   void setAttribute(std::string name, const std::vector<uint32_t>& data) override;
   // clang-format on
 
-  // Convenience method to set an array-valued attrbute, such as 'in vec3 vertexVal[3]'. Applies interleaving then
-  // forwards to the usual setAttribute
-  template <typename T, unsigned int C>
-  void setAttribute(std::string name, const std::vector<std::array<T, C>>& data, bool update = false, int offset = 0,
-                    int size = -1);
-
+  // Indices
+  void setIndex(std::shared_ptr<AttributeBuffer> externalBuffer) override;
+  void setPrimitiveRestartIndex(unsigned int restartIndex) override;
 
   // Indices
-  void setIndex(std::vector<std::array<unsigned int, 3>>& indices) override;
-  void setIndex(std::vector<unsigned int>& indices) override;
-  void setIndex(std::vector<glm::uvec3>& indices) override;
-  void setPrimitiveRestartIndex(unsigned int restartIndex) override;
+  void setInstanceCount(uint32_t instanceCount) override;
 
   // Textures
   bool hasTexture(std::string name) override;
@@ -297,8 +331,8 @@ public:
   std::vector<unsigned char> readDisplayBuffer() override;
 
   // Manage render state
-  void setDepthMode(DepthMode newMode = DepthMode::Less) override;
-  void setBlendMode(BlendMode newMode = BlendMode::Over) override;
+  void setDepthMode(DepthMode newMode) override;
+  void setBlendMode(BlendMode newMode) override;
   void setColorMask(std::array<bool, 4> mask = {true, true, true, true}) override;
   void setBackfaceCull(bool newVal) override;
 
@@ -315,6 +349,7 @@ public:
   bool windowRequestsClose() override;
   void pollEvents() override;
   bool isKeyPressed(char c) override; // for lowercase a-z and 0-9 only
+  int getKeyCode(char c) override;    // for lowercase a-z and 0-9 only
   std::string getClipboardText() override;
   void setClipboardText(std::string text) override;
 
@@ -338,6 +373,12 @@ public:
                                                        const unsigned char* data = nullptr) override; // 2d
   std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_,
                                                        const float* data) override; // 2d
+  std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_,
+                                                       unsigned int sizeZ_,
+                                                       const unsigned char* data = nullptr) override; // 3d
+  std::shared_ptr<TextureBuffer> generateTextureBuffer(TextureFormat format, unsigned int sizeX_, unsigned int sizeY_,
+                                                       unsigned int sizeZ_,
+                                                       const float* data) override; // 3d
 
   // create render buffers
   std::shared_ptr<RenderBuffer> generateRenderBuffer(RenderBufferType type, unsigned int sizeX_,

@@ -12,9 +12,16 @@ namespace polyscope {
 RenderImageQuantityBase::RenderImageQuantityBase(Structure& parent_, std::string name, size_t dimX_, size_t dimY_,
                                                  const std::vector<float>& depthData_,
                                                  const std::vector<glm::vec3>& normalData_, ImageOrigin imageOrigin_)
-    : FloatingQuantity(name, parent_), dimX(dimX_), dimY(dimY_), imageOrigin(imageOrigin_), depthData(depthData_),
-      normalData(normalData_), material(uniquePrefix() + "#material", "clay"),
-      transparency(uniquePrefix() + "#transparency", 1.0) {}
+    : FloatingQuantity(name, parent_), depths(this, uniquePrefix() + "depths", depthsData),
+      normals(this, uniquePrefix() + "normals", normalsData), dimX(dimX_), dimY(dimY_),
+      hasNormals(normalData_.size() > 0), imageOrigin(imageOrigin_), depthsData(depthData_), normalsData(normalData_),
+      material(uniquePrefix() + "material", "clay"), transparency(uniquePrefix() + "transparency", 1.0),
+      allowFullscreenCompositing(uniquePrefix() + "allowFullscreenCompositing", false) {
+  depths.setTextureSize(dimX, dimY);
+  if (hasNormals) {
+    normals.setTextureSize(dimX, dimY);
+  }
+}
 
 size_t RenderImageQuantityBase::nPix() { return dimX * dimY; }
 
@@ -34,40 +41,47 @@ void RenderImageQuantityBase::addOptionsPopupEntries() {
     material.manuallyChanged();
     setMaterial(material.get()); // trigger the other updates that happen on set()
   }
-}
 
-void RenderImageQuantityBase::updateGeometryBuffers(const std::vector<float>& newDepthData,
-                                                    const std::vector<glm::vec3>& newNormalData) {
-  depthData = newDepthData;
-  normalData = newNormalData;
-
-  // if prepared, re-prepare
-  // TODO do a fast update in the same buffer here
-  if (textureDepth) {
-    prepareGeometryBuffers();
+  if (ImGui::MenuItem("Allow fullscreen compositing", NULL, getAllowFullscreenCompositing())) {
+    setAllowFullscreenCompositing(!getAllowFullscreenCompositing());
   }
 }
 
-void RenderImageQuantityBase::prepareGeometryBuffers() {
+void RenderImageQuantityBase::updateBaseBuffers(const std::vector<float>& newDepthData,
+                                                const std::vector<glm::vec3>& newNormalData) {
+  if (!newDepthData.empty()) {
+    depths.ensureHostBufferAllocated();
+    depths.data = newDepthData;
+    depths.markHostBufferUpdated();
+  }
 
-  // == depth texture
-  textureDepth = render::engine->generateTextureBuffer(TextureFormat::R32F, dimX, dimY, &depthData.front());
+  if (!newNormalData.empty()) {
+    normals.ensureHostBufferAllocated();
+    normals.data = newNormalData;
+    normals.markHostBufferUpdated();
+  }
 
-  // == normal texture
-
-  // sanity check for glm struct layout
-  static_assert(sizeof(glm::vec3) == sizeof(float) * 3, "glm vec padding breaks direct copy");
-
-  textureNormal = render::engine->generateTextureBuffer(TextureFormat::RGB32F, dimX, dimY,
-                                                        static_cast<float*>(&normalData.front()[0]));
+  requestRedraw();
 }
 
-void RenderImageQuantityBase::refresh() {
-  textureDepth = nullptr;
-  textureNormal = nullptr;
-  Quantity::refresh();
+void RenderImageQuantityBase::refresh() { Quantity::refresh(); }
+
+void RenderImageQuantityBase::disableFullscreenDrawing() {
+  if (isEnabled()) {
+    setEnabled(false);
+  }
 }
 
+RenderImageQuantityBase* RenderImageQuantityBase::setEnabled(bool newEnabled) {
+  if (newEnabled == isEnabled()) return this;
+  if (newEnabled == true && !allowFullscreenCompositing.get()) {
+    // if drawing fullscreen, disable anything else which was already drawing fullscreen
+    disableAllFullscreenArtists();
+  }
+  enabled = newEnabled;
+  requestRedraw();
+  return this;
+}
 
 RenderImageQuantityBase* RenderImageQuantityBase::setMaterial(std::string m) {
   material = m;
@@ -90,5 +104,14 @@ RenderImageQuantityBase* RenderImageQuantityBase::setTransparency(float newVal) 
   return this;
 }
 float RenderImageQuantityBase::getTransparency() { return transparency.get(); }
+
+RenderImageQuantityBase* RenderImageQuantityBase::setAllowFullscreenCompositing(bool newVal) {
+  allowFullscreenCompositing = newVal;
+  requestRedraw();
+  return this;
+}
+
+bool RenderImageQuantityBase::getAllowFullscreenCompositing() { return allowFullscreenCompositing.get(); }
+
 
 } // namespace polyscope

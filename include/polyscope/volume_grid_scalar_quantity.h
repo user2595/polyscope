@@ -8,64 +8,106 @@
 #include "polyscope/histogram.h"
 #include "polyscope/render/color_maps.h"
 #include "polyscope/scalar_quantity.h"
+#include "polyscope/surface_mesh.h"
 #include "polyscope/volume_grid.h"
 
 namespace polyscope {
 
-class VolumeGridScalarQuantity : public VolumeGridQuantity, public ScalarQuantity<VolumeGridScalarQuantity> {
+// ========================================================
+// ==========            Node Scalar             ==========
+// ========================================================
+
+class VolumeGridNodeScalarQuantity : public VolumeGridQuantity, public ScalarQuantity<VolumeGridNodeScalarQuantity> {
 
 public:
-  VolumeGridScalarQuantity(std::string name, VolumeGrid& grid_, const std::vector<double>& values_, DataType dataType_);
+  VolumeGridNodeScalarQuantity(std::string name, VolumeGrid& grid_, const std::vector<double>& values_,
+                               DataType dataType_);
 
   virtual void draw() override;
   virtual void buildCustomUI() override;
   virtual void refresh() override;
+  virtual void buildNodeInfoGUI(size_t ind) override;
 
   virtual std::string niceName() override;
 
+  virtual bool isDrawingGridcubes() override;
+
   // == Getters and setters
 
-  // Point viz
+  // Gridcube viz
 
-  VolumeGridScalarQuantity* setPointVizEnabled(bool val);
-  bool getPointVizEnabled();
+  VolumeGridNodeScalarQuantity* setGridcubeVizEnabled(bool val);
+  bool getGridcubeVizEnabled();
 
 
   // Isosurface viz
 
-  VolumeGridScalarQuantity* setIsosurfaceVizEnabled(bool val);
+  VolumeGridNodeScalarQuantity* setIsosurfaceVizEnabled(bool val);
   bool getIsosurfaceVizEnabled();
 
-  VolumeGridScalarQuantity* setIsosurfaceLevel(float value);
+  VolumeGridNodeScalarQuantity* setIsosurfaceLevel(float value);
   float getIsosurfaceLevel();
 
-  VolumeGridScalarQuantity* setIsosurfaceColor(glm::vec3 val);
+  VolumeGridNodeScalarQuantity* setIsosurfaceColor(glm::vec3 val);
   glm::vec3 getIsosurfaceColor();
 
+  VolumeGridNodeScalarQuantity* setSlicePlanesAffectIsosurface(bool val);
+  bool getSlicePlanesAffectIsosurface();
+
+  SurfaceMesh* registerIsosurfaceAsMesh(std::string structureName = "");
 
 protected:
-  void createProgram();
-  void fillPositions();
-  void resetMapRange();
-
-  const DataType dataType;
-  std::vector<double> values;
-  std::vector<glm::vec3> positions;
-
-  // Visualize as points
-  PersistentValue<bool> pointVizEnabled;
-  std::shared_ptr<render::ShaderProgram> pointProgram;
-  void createPointProgram();
+  // Visualize as a grid of cubes
+  PersistentValue<bool> gridcubeVizEnabled;
+  std::shared_ptr<render::ShaderProgram> gridcubeProgram;
+  void createGridcubeProgram();
 
   // Visualize as isosurface
   // TODO
   PersistentValue<bool> isosurfaceVizEnabled;
   PersistentValue<float> isosurfaceLevel;
   PersistentValue<glm::vec3> isosurfaceColor;
+  PersistentValue<bool> slicePlanesAffectIsosurface;
   std::shared_ptr<render::ShaderProgram> isosurfaceProgram;
   void createIsosurfaceProgram();
 
   // Visualize as raymarched volume
+  // TODO
+};
+
+
+// ========================================================
+// ==========            Cell Scalar             ==========
+// ========================================================
+
+class VolumeGridCellScalarQuantity : public VolumeGridQuantity, public ScalarQuantity<VolumeGridCellScalarQuantity> {
+
+public:
+  VolumeGridCellScalarQuantity(std::string name, VolumeGrid& grid_, const std::vector<double>& values_,
+                               DataType dataType_);
+
+  virtual void draw() override;
+  virtual void buildCustomUI() override;
+  virtual void refresh() override;
+  virtual void buildCellInfoGUI(size_t ind) override;
+
+  virtual std::string niceName() override;
+
+  virtual bool isDrawingGridcubes() override;
+
+  // == Getters and setters
+
+  // Gridcube viz
+
+  VolumeGridCellScalarQuantity* setGridcubeVizEnabled(bool val);
+  bool getGridcubeVizEnabled();
+
+
+protected:
+  // Visualize as a grid of cubes
+  PersistentValue<bool> gridcubeVizEnabled;
+  std::shared_ptr<render::ShaderProgram> gridcubeProgram;
+  void createGridcubeProgram();
 };
 
 } // namespace polyscope

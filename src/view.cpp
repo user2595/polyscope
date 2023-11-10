@@ -20,6 +20,7 @@ int bufferWidth = -1;
 int bufferHeight = -1;
 int initWindowPosX = 20;
 int initWindowPosY = 20;
+bool windowResizable = true;
 NavigateStyle style = NavigateStyle::Turntable;
 UpDir upDir = UpDir::YUp;
 FrontDir frontDir = FrontDir::ZFront;
@@ -56,6 +57,31 @@ std::string to_string(ProjectionMode mode) {
   return ""; // unreachable
 }
 
+std::string to_string(NavigateStyle style) {
+
+  switch (style) {
+  case NavigateStyle::Turntable:
+    return "Turntable";
+    break;
+  case NavigateStyle::Free:
+    return "Free";
+    break;
+  case NavigateStyle::Planar:
+    return "Planar";
+    break;
+  case NavigateStyle::Arcball:
+    return "Arcball";
+    break;
+  case NavigateStyle::None:
+    return "None";
+    break;
+  case NavigateStyle::FirstPerson:
+    return "First Person";
+    break;
+  }
+
+  return ""; // unreachable
+}
 
 void processRotate(glm::vec2 startP, glm::vec2 endP) {
 
@@ -67,7 +93,7 @@ void processRotate(glm::vec2 startP, glm::vec2 endP) {
   glm::vec3 frameLookDir, frameUpDir, frameRightDir;
   getCameraFrame(frameLookDir, frameUpDir, frameRightDir);
 
-  switch (style) {
+  switch (getNavigateStyle()) {
   case NavigateStyle::Turntable: {
 
     glm::vec2 dragDelta = endP - startP;
@@ -83,27 +109,7 @@ void processRotate(glm::vec2 startP, glm::vec2 endP) {
 
     // Rotation about the vertical axis
     glm::vec3 turntableUp;
-    switch (upDir) {
-    case UpDir::XUp:
-      turntableUp = glm::vec3(1., 0., 0.);
-      break;
-    case UpDir::YUp:
-      turntableUp = glm::vec3(0., 1., 0.);
-      break;
-    case UpDir::ZUp:
-      turntableUp = glm::vec3(0., 0., 1.);
-      break;
-    case UpDir::NegXUp:
-      turntableUp = glm::vec3(-1., 0., 0.);
-      break;
-    case UpDir::NegYUp:
-      turntableUp = glm::vec3(0., -1., 0.);
-      break;
-    case UpDir::NegZUp:
-      turntableUp = glm::vec3(0., 0., -1.);
-      break;
-    }
-    glm::mat4x4 thetaCamR = glm::rotate(glm::mat4x4(1.0), delTheta, turntableUp);
+    glm::mat4x4 thetaCamR = glm::rotate(glm::mat4x4(1.0), delTheta, getUpVec());
     viewMat = viewMat * thetaCamR;
 
     // Undo centering
@@ -168,25 +174,36 @@ void processRotate(glm::vec2 startP, glm::vec2 endP) {
     viewMat = viewMat * update;
     break;
   }
+  case NavigateStyle::None: {
+    // Do nothing
+    break;
   }
+  case NavigateStyle::FirstPerson: {
+    glm::vec2 dragDelta = endP - startP;
+    float delTheta = 2.0 * dragDelta.x * moveScale;
+    float delPhi = 2.0 * dragDelta.y * moveScale;
 
+    // Rotation about the vertical axis
+    glm::vec3 rotAx = glm::mat3(viewMat) * getUpVec();
+    glm::mat4x4 thetaCamR = glm::rotate(glm::mat4x4(1.0), delTheta, rotAx);
+    viewMat = thetaCamR * viewMat;
 
-  requestRedraw();
-  immediatelyEndFlight();
-}
+    // Rotation about the horizontal axis
+    glm::mat4x4 phiCamR = glm::rotate(glm::mat4x4(1.0), -delPhi, glm::vec3(1.f, 0.f, 0.f));
+    viewMat = phiCamR * viewMat;
 
-void processRotateArcball(glm::vec2 startP, glm::vec2 endP) {
-
-  if (endP == startP) {
-    return;
+    break;
   }
-
+  }
 
   requestRedraw();
   immediatelyEndFlight();
 }
 
 void processTranslate(glm::vec2 delta) {
+  if (getNavigateStyle() == NavigateStyle::None) {
+    return;
+  }
   if (glm::length(delta) == 0) {
     return;
   }
@@ -208,6 +225,9 @@ void processClipPlaneShift(double amount) {
 
 void processZoom(double amount) {
   if (amount == 0.0) return;
+  if (getNavigateStyle() == NavigateStyle::None || getNavigateStyle() == NavigateStyle::FirstPerson) {
+    return;
+  }
 
   // Translate the camera forwards and backwards
 
@@ -229,6 +249,55 @@ void processZoom(double amount) {
 
   immediatelyEndFlight();
   requestRedraw();
+}
+
+void processKeyboardNavigation(ImGuiIO& io) {
+
+
+  // == Non movement-related
+
+  // ctrl-c
+  if (io.KeyCtrl && render::engine->isKeyPressed('c')) {
+    std::string outData = view::getCameraJson();
+    render::engine->setClipboardText(outData);
+  }
+
+  // ctrl-v
+  if (io.KeyCtrl && render::engine->isKeyPressed('v')) {
+    std::string clipboardData = render::engine->getClipboardText();
+    view::setCameraFromJson(clipboardData, true);
+  }
+
+
+  // == Movement-related
+  bool hasMovement = false;
+
+  if (getNavigateStyle() == NavigateStyle::FirstPerson) {
+
+    // WASD-style keyboard navigation
+
+    glm::vec3 delta{0.f, 0.f, 0.f};
+
+    if (io.KeysDown[render::engine->getKeyCode('a')]) delta.x += 1.f;
+    if (io.KeysDown[render::engine->getKeyCode('d')]) delta.x += -1.f;
+    if (io.KeysDown[render::engine->getKeyCode('q')]) delta.y += 1.f;
+    if (io.KeysDown[render::engine->getKeyCode('e')]) delta.y += -1.f;
+    if (io.KeysDown[render::engine->getKeyCode('w')]) delta.z += 1.f;
+    if (io.KeysDown[render::engine->getKeyCode('s')]) delta.z += -1.f;
+
+    if (glm::length(delta) > 0.) {
+      hasMovement = true;
+    }
+
+    float movementScale = state::lengthScale * 0.02 * moveScale;
+    glm::mat4x4 camSpaceT = glm::translate(glm::mat4x4(1.0), movementScale * delta);
+    viewMat = camSpaceT * viewMat;
+  }
+
+  if (hasMovement) {
+    immediatelyEndFlight();
+    requestRedraw();
+  }
 }
 
 void invalidateView() { viewMat = glm::mat4x4(std::numeric_limits<float>::quiet_NaN()); }
@@ -338,8 +407,14 @@ void lookAt(glm::vec3 cameraLocation, glm::vec3 target, glm::vec3 upDir, bool fl
 void setWindowSize(int width, int height) {
   view::windowWidth = width;
   view::windowHeight = height;
-  render::engine->applyWindowSize();
+  if (isInitialized()) {
+    render::engine->applyWindowSize();
+  }
 }
+
+std::tuple<int, int> getWindowSize() { return std::tuple<int, int>(view::windowWidth, view::windowHeight); }
+
+std::tuple<int, int> getBufferSize() { return std::tuple<int, int>(view::bufferWidth, view::bufferWidth); }
 
 void setViewToCamera(const CameraParameters& p) {
   viewMat = p.getE();
@@ -349,9 +424,14 @@ void setViewToCamera(const CameraParameters& p) {
 }
 
 CameraParameters getCameraParametersForCurrentView() {
+  ensureViewValid();
+
   double aspectRatio = (float)bufferWidth / bufferHeight;
-  return CameraParameters(viewMat, fov, aspectRatio);
+  return CameraParameters(CameraIntrinsics::fromFoVDegVerticalAndAspect(fov, aspectRatio),
+                          CameraExtrinsics::fromMatrix(viewMat));
 }
+
+void setCameraViewMatrix(glm::mat4 mat) { viewMat = mat; }
 
 glm::mat4 getCameraViewMatrix() { return viewMat; }
 
@@ -514,7 +594,7 @@ void updateFlight() {
   }
 }
 
-std::string getCameraJson() {
+std::string getViewAsJson() {
 
   // Get the view matrix (note weird glm indexing, glm is [col][row])
   glm::mat4 viewMat = getCameraViewMatrix();
@@ -539,8 +619,9 @@ std::string getCameraJson() {
   std::string outString = j.dump();
   return outString;
 }
+std::string getCameraJson() { return getViewAsJson(); }
 
-void setCameraFromJson(std::string jsonData, bool flyTo) {
+void setViewFromJson(std::string jsonData, bool flyTo) {
   // Values will go here
   glm::mat4 newViewMat;
   double newFov = -777;
@@ -614,6 +695,7 @@ void setCameraFromJson(std::string jsonData, bool flyTo) {
     requestRedraw();
   }
 }
+void setCameraFromJson(std::string jsonData, bool flyTo) { setViewFromJson(jsonData, flyTo); }
 
 void buildViewGui() {
 
@@ -626,38 +708,20 @@ void buildViewGui() {
 
     // == Camera style
 
-    std::string viewStyleName;
-    switch (view::style) {
-    case view::NavigateStyle::Turntable:
-      viewStyleName = "Turntable";
-      break;
-    case view::NavigateStyle::Free:
-      viewStyleName = "Free";
-      break;
-    case view::NavigateStyle::Planar:
-      viewStyleName = "Planar";
-      break;
-    case view::NavigateStyle::Arcball:
-      viewStyleName = "Arcball";
-      break;
-    }
+    std::string viewStyleName = to_string(view::style);
 
     ImGui::PushItemWidth(120);
+    std::array<NavigateStyle, 5> styles{NavigateStyle::Turntable, NavigateStyle::Free, NavigateStyle::Planar,
+                                        NavigateStyle::None, NavigateStyle::FirstPerson};
     if (ImGui::BeginCombo("##View Style", viewStyleName.c_str())) {
-      if (ImGui::Selectable("Turntable", view::style == view::NavigateStyle::Turntable)) {
-        view::style = view::NavigateStyle::Turntable;
-        view::flyToHomeView();
-        ImGui::SetItemDefaultFocus();
+
+      for (NavigateStyle s : styles) {
+        if (ImGui::Selectable(to_string(s).c_str(), view::style == s)) {
+          setNavigateStyle(s, true);
+          ImGui::SetItemDefaultFocus();
+        }
       }
-      if (ImGui::Selectable("Free", view::style == view::NavigateStyle::Free)) {
-        view::style = view::NavigateStyle::Free;
-        ImGui::SetItemDefaultFocus();
-      }
-      if (ImGui::Selectable("Planar", view::style == view::NavigateStyle::Planar)) {
-        view::style = view::NavigateStyle::Planar;
-        view::flyToHomeView();
-        ImGui::SetItemDefaultFocus();
-      }
+
       ImGui::EndCombo();
     }
     ImGui::SameLine();
@@ -783,6 +847,13 @@ void buildViewGui() {
       }
     }
 
+    // Move speed
+    float moveScaleF = view::moveScale;
+    ImGui::SliderFloat(" Move Speed", &moveScaleF, 0.0, 2.0, "%.5f",
+                       ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
+    view::moveScale = moveScaleF;
+
+
     if (ImGui::TreeNode("Scene Extents")) {
 
       if (ImGui::Checkbox("Set automatically", &options::automaticallyComputeSceneExtents)) {
@@ -797,9 +868,9 @@ void buildViewGui() {
           requestRedraw();
         }
         if (ImGui::IsItemDeactivatedAfterEdit()) {
-          // the upper bound for the slider is dynamically adjust to be a bit bigger than the lower bound, but only does
-          // so on release of the widget (so it doesn't scaleo off to infinity), and only ever gets larger (so you don't
-          // get stuck at 0)
+          // the upper bound for the slider is dynamically adjust to be a bit bigger than the lower bound, but only
+          // does so on release of the widget (so it doesn't scaleo off to infinity), and only ever gets larger (so
+          // you don't get stuck at 0)
           lengthScaleUpper = std::fmax(2. * state::lengthScale, lengthScaleUpper);
         }
 
@@ -841,12 +912,6 @@ void buildViewGui() {
         farClipRatio = farClipRatioF;
         requestRedraw();
       }
-
-      // Move speed
-      float moveScaleF = view::moveScale;
-      ImGui::SliderFloat(" Move Speed", &moveScaleF, 0.0, 1.0, "%.5f",
-                         ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat);
-      view::moveScale = moveScaleF;
 
 
       std::string projectionModeStr = to_string(view::projectionMode);
@@ -895,10 +960,10 @@ void buildViewGui() {
 
       {
         ImGui::SameLine();
-        bool sizeLocked = !render::engine->getWindowResizable();
+        bool sizeLocked = !getWindowResizable();
         bool changed = ImGui::Checkbox("lock", &sizeLocked);
         if (changed) {
-          render::engine->setWindowResizable(!sizeLocked);
+          setWindowResizable(!sizeLocked);
         }
       }
 
@@ -951,6 +1016,7 @@ void setFrontDir(FrontDir newFrontDir, bool animateFlight) {
   } else {
     resetCameraToHomeView();
   }
+  requestRedraw();
 }
 
 FrontDir getFrontDir() { return frontDir; }
@@ -974,6 +1040,36 @@ glm::vec3 getFrontVec() {
   // unused fallthrough
   return glm::vec3{0., 0., 0.};
 }
+
+
+void setNavigateStyle(NavigateStyle newStyle, bool animateFlight) {
+  NavigateStyle oldStyle = style;
+  style = newStyle;
+
+  // for a few combinations of views, we can leave the camera where it is rather than resetting to the home view
+  if (newStyle == NavigateStyle::Free ||
+      (newStyle == NavigateStyle::FirstPerson && oldStyle == NavigateStyle::Turntable)) {
+    return;
+  }
+
+  // reset to the home view
+  if (animateFlight) {
+    flyToHomeView();
+  } else {
+    resetCameraToHomeView();
+  }
+}
+NavigateStyle getNavigateStyle() { return style; }
+
+void setWindowResizable(bool isResizable) {
+  windowResizable = isResizable;
+  if (isInitialized()) {
+    return render::engine->setWindowResizable(isResizable);
+  }
+}
+
+bool getWindowResizable() { return windowResizable; }
+
 
 } // namespace view
 } // namespace polyscope

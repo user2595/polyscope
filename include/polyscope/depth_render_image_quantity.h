@@ -20,9 +20,11 @@ public:
   virtual void buildCustomUI() override;
 
   virtual void refresh() override;
-  virtual DepthRenderImageQuantity* setEnabled(bool newEnabled) override;
 
   virtual std::string niceName() override;
+
+  template <typename T1, typename T2>
+  void updateBuffers(const T1& depthData, const T2& normalData);
 
   // == Setters and getters
 
@@ -42,6 +44,20 @@ protected:
   // === Helpers
   void prepare();
 };
+
+
+template <typename T1, typename T2>
+void DepthRenderImageQuantity::updateBuffers(const T1& depthData, const T2& normalData) {
+
+  validateSize(depthData, dimX * dimY, "depth render image depth data " + name);
+  validateSize(normalData, {dimX * dimY, 0}, "depth render image normal data " + name);
+
+  // standardize
+  std::vector<float> standardDepth(standardizeArray<float>(depthData));
+  std::vector<glm::vec3> standardNormal(standardizeVectorArray<glm::vec3, 3>(normalData));
+
+  updateBaseBuffers(standardDepth, standardNormal);
+}
 
 
 } // namespace polyscope

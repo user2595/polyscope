@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <set>
 #include <unordered_set>
 
@@ -18,6 +19,7 @@
 #include "polyscope/structure.h"
 #include "polyscope/transformation_gizmo.h"
 #include "polyscope/utilities.h"
+#include "polyscope/weak_handle.h"
 #include "polyscope/widget.h"
 
 
@@ -45,6 +47,11 @@ bool isInitialized();
 // the GUI, possibly by exiting the window.
 void show(size_t forFrames = std::numeric_limits<size_t>::max());
 
+// When the UI is looping during a call to show(), call this to request that the window close
+// and the show() call returns.
+// Equivalent to clicking the 'close' button on the window.
+void unshow();
+
 // An alternate method to execute the Polyscope graphical loop. Instead of calling show(), call frameTick() frequently
 // in the user program's loop.
 void frameTick();
@@ -62,10 +69,11 @@ extern bool initialized;
 extern std::string backend;
 
 // lists of all structures in Polyscope, by category
-extern std::map<std::string, std::map<std::string, Structure*>> structures;
+// TODO unique pointer
+extern std::map<std::string, std::map<std::string, std::unique_ptr<Structure>>> structures;
 
 // lists of all groups in Polyscope
-extern std::map<std::string, Group*> groups;
+extern std::map<std::string, std::unique_ptr<Group>> groups;
 
 // representative length scale for all registered structures
 extern float lengthScale;
@@ -73,9 +81,11 @@ extern float lengthScale;
 // axis-aligned bounding box for all registered structures
 extern std::tuple<glm::vec3, glm::vec3> boundingBox;
 
-// a list of widgets and other more specific doodads in the scene
-extern std::set<Widget*> widgets;
-extern std::vector<SlicePlane*> slicePlanes;
+// list of all slice planes in the scene
+extern std::vector<std::unique_ptr<SlicePlane>> slicePlanes;
+
+// list of all widgets in the scene (the memory is NOT owned here, they're just refs)
+extern std::vector<WeakHandle<Widget>> widgets;
 
 // should we allow default trackball mouse camera interaction?
 // Needs more interactions on when to turn this on/off
@@ -83,7 +93,6 @@ extern bool doDefaultMouseInteraction;
 
 // a callback function used to render a "user" gui
 extern std::function<void()> userCallback;
-
 
 // representative center for all registered structures
 glm::vec3 center();

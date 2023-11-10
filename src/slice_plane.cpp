@@ -10,39 +10,30 @@ namespace polyscope {
 // NOTE: Unfortunately, the logic here and in the engine depends on the names constructed from the postfix being
 // identical.
 
-namespace {
-// storage for slice planes "owned" by the scene itself
-// note: it would be nice for these to be unique_ptr<>, but unfortunately we fall in to a bad design trap---since
-// destruction order is essentially arbitrary, these might get destructed after other Polyscope data, causing faults
-// when the destructor executes. The lame solution is to just store as raw pointers, it only makes a difference at
-// program exit.
-std::vector<SlicePlane*> sceneSlicePlanes;
-
-} // namespace
-
 // Storage for global options
 bool openSlicePlaneMenu = false;
 
 SlicePlane* addSceneSlicePlane(bool initiallyVisible) {
-  size_t nPlanes = sceneSlicePlanes.size();
+  size_t nPlanes = state::slicePlanes.size();
   std::string newName = "Scene Slice Plane " + std::to_string(nPlanes);
-  sceneSlicePlanes.emplace_back(new SlicePlane(newName));
+  state::slicePlanes.emplace_back(std::unique_ptr<SlicePlane>(new SlicePlane(newName)));
+  nPlanes++;
+  SlicePlane* newPlane = state::slicePlanes.back().get();
   if (!initiallyVisible) {
-    sceneSlicePlanes.back()->setDrawPlane(false);
-    sceneSlicePlanes.back()->setDrawWidget(false);
+    newPlane->setDrawPlane(false);
+    newPlane->setDrawWidget(false);
   }
-  for (size_t i = 0; i < sceneSlicePlanes.size(); i++) {
-    sceneSlicePlanes[i]->resetVolumeSliceProgram();
+  for (std::unique_ptr<SlicePlane>& s : state::slicePlanes) {
+    s->resetVolumeSliceProgram();
   }
-  return sceneSlicePlanes.back();
+  return newPlane;
 }
 
 void removeLastSceneSlicePlane() {
-  if (sceneSlicePlanes.empty()) return;
-  delete sceneSlicePlanes.back();
-  sceneSlicePlanes.pop_back();
-  for (size_t i = 0; i < sceneSlicePlanes.size(); i++) {
-    sceneSlicePlanes[i]->resetVolumeSliceProgram();
+  if (state::slicePlanes.empty()) return;
+  state::slicePlanes.pop_back();
+  for (std::unique_ptr<SlicePlane>& s : state::slicePlanes) {
+    s->resetVolumeSliceProgram();
   }
 }
 
@@ -62,7 +53,7 @@ void buildSlicePlaneGUI() {
     if (ImGui::Button("Remove plane")) {
       removeLastSceneSlicePlane();
     }
-    for (SlicePlane* s : state::slicePlanes) {
+    for (std::unique_ptr<SlicePlane>& s : state::slicePlanes) {
       s->buildGUI();
     }
     ImGui::TreePop();
@@ -78,13 +69,12 @@ SlicePlane::SlicePlane(std::string name_)
       gridLineColor(uniquePrefix() + "#gridLineColor", glm::vec3{.97, .97, .97}),
       transparency(uniquePrefix() + "#transparency", 0.5), shouldInspectMesh(false), inspectedMeshName(""),
       transformGizmo(uniquePrefix() + "#transformGizmo", objectTransform.get(), &objectTransform),
-      sliceBufferArr{{{uniquePrefix() + "#slice1", sliceBufferDataArr[0]},
-                      {uniquePrefix() + "#slice2", sliceBufferDataArr[1]},
-                      {uniquePrefix() + "#slice3", sliceBufferDataArr[2]},
-                      {uniquePrefix() + "#slice4", sliceBufferDataArr[3]}}}
+      sliceBufferArr{{{nullptr, uniquePrefix() + "#slice1", sliceBufferDataArr[0]},
+                      {nullptr, uniquePrefix() + "#slice2", sliceBufferDataArr[1]},
+                      {nullptr, uniquePrefix() + "#slice3", sliceBufferDataArr[2]},
+                      {nullptr, uniquePrefix() + "#slice4", sliceBufferDataArr[3]}}}
 
 {
-  state::slicePlanes.push_back(this);
   render::engine->addSlicePlane(postfix);
   transformGizmo.enabled = true;
   prepare();
@@ -94,9 +84,6 @@ SlicePlane::~SlicePlane() {
   ensureVolumeInspectValid();
   setVolumeMeshToInspect(""); // disable any slicing
   render::engine->removeSlicePlane(postfix);
-  auto pos = std::find(state::slicePlanes.begin(), state::slicePlanes.end(), this);
-  if (pos == state::slicePlanes.end()) return;
-  state::slicePlanes.erase(pos);
 }
 
 std::string SlicePlane::uniquePrefix() { return "SlicePlane#" + name + "#"; }
@@ -169,8 +156,17 @@ void SlicePlane::ensureVolumeInspectValid() {
 
 void SlicePlane::createVolumeSliceProgram() {
   VolumeMesh* meshToInspect = polyscope::getVolumeMesh(inspectedMeshName);
-  volumeInspectProgram = render::engine->requestShader(
-      "SLICE_TETS", meshToInspect->addVolumeMeshRules({"SLICE_TETS_BASECOLOR_SHADE"}, true, true));
+
+  // clang-format off
+  volumeInspectProgram = render::engine->requestShader( "SLICE_TETS", 
+      render::engine->addMaterialRules(meshToInspect->getMaterial(),
+        meshToInspect->addVolumeMeshRules(
+          {"SLICE_TETS_BASECOLOR_SHADE"}, 
+        true, true)
+      )
+    );
+  // clang-format on
+
   meshToInspect->fillSliceGeometryBuffers(*volumeInspectProgram);
   render::engine->setMaterial(*volumeInspectProgram, meshToInspect->getMaterial());
 }
@@ -229,6 +225,7 @@ void SlicePlane::drawGeometry() {
       setSliceGeomUniforms(*volumeInspectProgram);
       vMesh->setVolumeMeshUniforms(*volumeInspectProgram);
       volumeInspectProgram->setUniform("u_baseColor1", vMesh->getColor());
+      render::engine->setMaterialUniforms(*volumeInspectProgram, vMesh->getMaterial());
       volumeInspectProgram->draw();
     }
 
@@ -309,9 +306,8 @@ void SlicePlane::buildGUI() {
     if (ImGui::BeginPopup("InspectPopup")) {
 
       //  Loop over volume meshes and offer them to be inspected
-      std::map<std::string, Structure*>::iterator it;
-      for (it = state::structures["Volume Mesh"].begin(); it != state::structures["Volume Mesh"].end(); it++) {
-        std::string vMeshName = it->first;
+      for (std::pair<const std::string, std::unique_ptr<Structure>>& it : state::structures["Volume Mesh"]) {
+        std::string vMeshName = it.first;
         if (ImGui::MenuItem(vMeshName.c_str(), NULL, inspectedMeshName == vMeshName)) {
           setVolumeMeshToInspect(vMeshName);
         }

@@ -2,6 +2,8 @@
 
 #include "polyscope_test.h"
 
+#include "polyscope/floating_quantities.h"
+
 // ============================================================
 // =============== Floating image
 // ============================================================
@@ -48,6 +50,9 @@ TEST_F(PolyscopeTest, FloatingImageTest) {
     polyscope::show(3);
     im->setShowFullscreen(true);
     polyscope::show(3);
+
+    im->setIsPremultiplied(true);
+    polyscope::show(3);
   }
 
   // make sure it doesn't blow up with transparancy
@@ -74,24 +79,71 @@ TEST_F(PolyscopeTest, FloatingRenderImageTest) {
 
   std::vector<float> depthVals(dimX * dimY, 0.44);
   std::vector<std::array<float, 3>> normalVals(dimX * dimY, std::array<float, 3>{0.44, 0.55, 0.66});
+  std::vector<std::array<float, 3>> normalValsEmpty;
   std::vector<std::array<float, 3>> colorVals(dimX * dimY, std::array<float, 3>{0.44, 0.55, 0.66});
+  std::vector<std::array<float, 4>> colorAlphaVals(dimX * dimY, std::array<float, 4>{0.44, 0.55, 0.66, 0.77});
   std::vector<float> scalarVals(dimX * dimY, 0.44);
 
   { // DepthRenderImageQuantity
     polyscope::DepthRenderImageQuantity* im = polyscope::addDepthRenderImageQuantity(
         "render im depth", dimX, dimY, depthVals, normalVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+  }
+  { // with no normals
+    polyscope::DepthRenderImageQuantity* im = polyscope::addDepthRenderImageQuantity(
+        "render im depth no normal", dimX, dimY, depthVals, normalValsEmpty, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalValsEmpty);
+    im->setEnabled(true);
     polyscope::show(3);
   }
 
   { // ColorImageQuantity
     polyscope::ColorRenderImageQuantity* im = polyscope::addColorRenderImageQuantity(
-        "render im depth", dimX, dimY, depthVals, normalVals, colorVals, polyscope::ImageOrigin::UpperLeft);
+        "render im color", dimX, dimY, depthVals, normalVals, colorVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalVals, colorVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+  }
+  { // with no normals
+    polyscope::ColorRenderImageQuantity* im = polyscope::addColorRenderImageQuantity(
+        "render im color", dimX, dimY, depthVals, normalValsEmpty, colorVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalValsEmpty, colorVals);
+    im->setEnabled(true);
     polyscope::show(3);
   }
 
   { // ScalarRenderImageQuantity
     polyscope::ScalarRenderImageQuantity* im = polyscope::addScalarRenderImageQuantity(
         "render im scalar", dimX, dimY, depthVals, normalVals, scalarVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalVals, scalarVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+  }
+  { // with no normals
+    polyscope::ScalarRenderImageQuantity* im = polyscope::addScalarRenderImageQuantity(
+        "render im scalar", dimX, dimY, depthVals, normalValsEmpty, scalarVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, normalValsEmpty, scalarVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+  }
+
+  { // RawColorImageQuantity
+    polyscope::RawColorRenderImageQuantity* im = polyscope::addRawColorRenderImageQuantity(
+        "render im raw color", dimX, dimY, depthVals, colorVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, colorVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+  }
+
+  { // RawColorAlphaImageQuantity
+    polyscope::RawColorAlphaRenderImageQuantity* im = polyscope::addRawColorAlphaRenderImageQuantity(
+        "render im raw color alpha", dimX, dimY, depthVals, colorAlphaVals, polyscope::ImageOrigin::UpperLeft);
+    im->updateBuffers(depthVals, colorAlphaVals);
+    im->setEnabled(true);
+    polyscope::show(3);
+    im->setIsPremultiplied(true);
     polyscope::show(3);
   }
 
@@ -147,21 +199,21 @@ TEST_F(PolyscopeTest, ImplicitSurfaceRenderImageQuantityTest) {
   auto scalarFunc = [](glm::vec3 p) { return p.x; };
 
   polyscope::ImplicitRenderOpts opts;
-  opts.mode = polyscope::ImplicitRenderMode::SphereMarch;
+  polyscope::ImplicitRenderMode mode = polyscope::ImplicitRenderMode::SphereMarch;
   opts.subsampleFactor = 16; // real small, don't want to use much compute
 
   // plain depth-only implicit surface
-  polyscope::DepthRenderImageQuantity* img = polyscope::renderImplicitSurface("torus sdf", torusSDF, opts);
+  polyscope::DepthRenderImageQuantity* img = polyscope::renderImplicitSurface("torus sdf", torusSDF, mode, opts);
   polyscope::show(3);
 
   // colored implicit surface
   polyscope::ColorRenderImageQuantity* imgColor =
-      polyscope::renderImplicitSurfaceColor("torus sdf color", torusSDF, colorFunc, opts);
+      polyscope::renderImplicitSurfaceColor("torus sdf color", torusSDF, colorFunc, mode, opts);
   polyscope::show(3);
 
   // scalar value implicit surface
   polyscope::ScalarRenderImageQuantity* imgScalar =
-      polyscope::renderImplicitSurfaceScalar("torus sdf scalar", torusSDF, scalarFunc, opts);
+      polyscope::renderImplicitSurfaceScalar("torus sdf scalar", torusSDF, scalarFunc, mode, opts);
   polyscope::show(3);
 
 
